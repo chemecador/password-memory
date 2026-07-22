@@ -1,5 +1,6 @@
 package com.chemecador.passwordmemory.data.repository
 
+import com.chemecador.passwordmemory.data.backup.BackupEntry
 import com.chemecador.passwordmemory.data.db.PasswordEntryDao
 import com.chemecador.passwordmemory.data.db.PasswordEntryEntity
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
@@ -126,7 +127,70 @@ class PasswordRepository @Inject constructor(
         val salt = entity.salt ?: return false
         return hasher.verify(guess, HashedPassword(hash = hash, salt = salt))
     }
+
+    /**
+     * Snapshot of every entry for a backup. Encrypted entries are decrypted here, since the
+     * Keystore key cannot be exported; entries whose key is no longer available are skipped.
+     */
+    suspend fun exportEntries(): List<BackupEntry> = dao.getAll().mapNotNull { entity ->
+        when (entity.mode) {
+            ProtectionMode.ENCRYPTED -> {
+                val cipherText = entity.cipherText ?: return@mapNotNull null
+                val iv = entity.iv ?: return@mapNotNull null
+                val plain = runCatching {
+                    cryptoManager.decrypt(EncryptedPayload(cipherText = cipherText, iv = iv))
+                }.getOrNull() ?: return@mapNotNull null
+                entity.toBackupEntry(plainPassword = plain)
+            }
+
+            ProtectionMode.HASHED -> entity.toBackupEntry()
+        }
+    }
+
+    /** Restores backed up entries, re-encrypting the recoverable ones with this device's key. */
+    suspend fun importEntries(entries: List<BackupEntry>): Int {
+        val restored = entries.mapNotNull { entry ->
+            val base = PasswordEntryEntity(
+                serviceName = entry.serviceName,
+                username = entry.username,
+                hint = entry.hint,
+                category = entry.category,
+                isFavorite = entry.isFavorite,
+                mode = entry.mode,
+                createdAt = entry.createdAt,
+                updatedAt = entry.updatedAt
+            )
+            when (entry.mode) {
+                ProtectionMode.ENCRYPTED -> entry.plainPassword?.let { plain ->
+                    val payload = cryptoManager.encrypt(plain)
+                    base.copy(cipherText = payload.cipherText, iv = payload.iv)
+                }
+
+                ProtectionMode.HASHED -> {
+                    val hash = entry.hash
+                    val salt = entry.salt
+                    if (hash == null || salt == null) null else base.copy(hash = hash, salt = salt)
+                }
+            }
+        }
+        dao.insertAll(restored)
+        return restored.size
+    }
 }
+
+private fun PasswordEntryEntity.toBackupEntry(plainPassword: String? = null) = BackupEntry(
+    serviceName = serviceName,
+    username = username,
+    hint = hint,
+    category = category,
+    isFavorite = isFavorite,
+    mode = mode,
+    plainPassword = plainPassword,
+    hash = hash,
+    salt = salt,
+    createdAt = createdAt,
+    updatedAt = updatedAt
+)
 
 /** Optional fields arrive from the form as possibly blank strings; store them as null instead. */
 private fun String?.normalise(): String? = this?.trim()?.takeIf(String::isNotEmpty)

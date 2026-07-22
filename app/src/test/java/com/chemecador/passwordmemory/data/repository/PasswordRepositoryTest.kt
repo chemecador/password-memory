@@ -146,10 +146,53 @@ class PasswordRepositoryTest {
     }
 
     @Test
+    fun `export decrypts encrypted entries and passes hashed ones through`() = runTest {
+        repository.createEncrypted(draft, "s3cr3t")
+        repository.createHashed(draft.copy(serviceName = "Bank"), "other")
+
+        val exported = repository.exportEntries()
+
+        val encrypted = exported.single { it.mode == ProtectionMode.ENCRYPTED }
+        assertEquals("s3cr3t", encrypted.plainPassword)
+        val hashed = exported.single { it.mode == ProtectionMode.HASHED }
+        assertNull(hashed.plainPassword)
+        assertEquals(32, hashed.hash!!.size)
+    }
+
+    @Test
+    fun `entries whose key is gone are skipped on export`() = runTest {
+        repository.createEncrypted(draft, "s3cr3t")
+        repository.createHashed(draft.copy(serviceName = "Bank"), "other")
+        crypto.simulateLostKey()
+
+        val exported = repository.exportEntries()
+
+        assertEquals(listOf(ProtectionMode.HASHED), exported.map { it.mode })
+    }
+
+    @Test
     fun `revealing fails gracefully when the key is gone`() = runTest {
         val id = repository.createEncrypted(draft, "s3cr3t")
         crypto.simulateLostKey()
 
         assertNull(repository.revealPassword(id))
+    }
+
+    @Test
+    fun `import restores both modes`() = runTest {
+        repository.createEncrypted(draft, "s3cr3t")
+        val hashedId = repository.createHashed(draft.copy(serviceName = "Bank"), "other")
+        val exported = repository.exportEntries()
+        repository.delete(hashedId)
+        repository.observeEntries().first().forEach { repository.delete(it.id) }
+
+        val restored = repository.importEntries(exported)
+
+        assertEquals(2, restored)
+        val entries = repository.observeEntries().first()
+        val encrypted = entries.single { it.mode == ProtectionMode.ENCRYPTED }
+        assertEquals("s3cr3t", repository.revealPassword(encrypted.id))
+        val hashed = entries.single { it.mode == ProtectionMode.HASHED }
+        assertTrue(repository.verifyGuess(hashed.id, "other"))
     }
 }
