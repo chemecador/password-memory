@@ -11,6 +11,7 @@
     <string name="action_toggle_visibility">Show or hide password</string>
 
     <!-- Lock -->
+    <string name="lock_tagline">Your passwords, only on this device</string>
     <string name="lock_message">Unlock to see your entries.</string>
     <string name="lock_unavailable">Set up a screen lock (PIN, pattern or biometrics) on your device to use Password Memory.</string>
     <string name="lock_unlock">Unlock</string>
@@ -21,10 +22,17 @@
     <string name="list_search">Search by service</string>
     <string name="list_add">New entry</string>
     <string name="list_menu">More options</string>
+    <string name="list_clear_search">Clear search</string>
     <string name="list_favorites">Favorites</string>
     <string name="list_toggle_favorite">Mark as favorite</string>
-    <string name="list_empty">No entries yet. Tap + to add your first one.</string>
+    <string name="list_empty_title">Nothing saved yet</string>
+    <string name="list_empty">Add your first entry and it will stay on this device only.</string>
+    <string name="list_empty_filtered_title">No matches</string>
     <string name="list_empty_filtered">No entries match these filters.</string>
+    <plurals name="list_count">
+        <item quantity="one">%1$d entry</item>
+        <item quantity="other">%1$d entries</item>
+    </plurals>
 
     <!-- Protection modes -->
     <string name="mode_encrypted">Encrypted</string>
@@ -43,6 +51,9 @@
     <!-- Create / edit -->
     <string name="create_title">New entry</string>
     <string name="edit_title">Edit entry</string>
+    <string name="edit_section_service">Service</string>
+    <string name="edit_section_password">Password</string>
+    <string name="edit_section_extras">Extras</string>
     <string name="edit_password_optional">Leave it empty to keep the current password.</string>
     <string name="edit_hashed_password_locked">This password is hashed and cannot be changed. Delete the entry and create a new one.</string>
 
@@ -56,7 +67,8 @@
     <string name="generator_generate">Generate</string>
 
     <!-- Detail -->
-    <string name="detail_mode">Protection</string>
+    <string name="detail_section_details">Details</string>
+    <string name="detail_section_password">Password</string>
     <string name="detail_reveal">Show password</string>
     <string name="detail_hide">Hide</string>
     <string name="detail_copy">Copy password</string>
@@ -76,7 +88,9 @@
     <string name="backup_title">Backup</string>
     <string name="backup_explanation">The encryption key never leaves this device, so a backup file is the only way to move your entries to another device or recover them after a reinstall. The file is encrypted with a one-time passphrase that is not saved anywhere: if you forget it, the backup is unusable.</string>
     <string name="backup_export">Export</string>
+    <string name="backup_export_description">Save an encrypted file with all your entries.</string>
     <string name="backup_import">Import</string>
+    <string name="backup_import_description">Restore entries from a backup file.</string>
     <string name="backup_passphrase">Passphrase</string>
     <string name="backup_passphrase_export_help">Choose a passphrase to encrypt the backup file. You will need it to import it later.</string>
     <string name="backup_passphrase_import_help">Enter the passphrase used when the backup was exported.</string>

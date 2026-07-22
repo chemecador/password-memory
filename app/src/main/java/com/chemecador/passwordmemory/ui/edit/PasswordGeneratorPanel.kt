@@ -6,11 +6,19 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,7 +36,11 @@ fun PasswordGeneratorPanel(
     onGenerateClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedCard(modifier = modifier.fillMaxWidth()) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -38,7 +50,15 @@ fun PasswordGeneratorPanel(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(stringResource(R.string.generator_length, options.length))
+                Text(
+                    text = stringResource(R.string.generator_title),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = stringResource(R.string.generator_length, options.length),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
             Slider(
                 value = options.length.toFloat(),
@@ -47,34 +67,56 @@ fun PasswordGeneratorPanel(
                     PasswordGeneratorOptions.MAX_LENGTH.toFloat()
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
+                CharacterSetChip(
                     selected = options.useUppercase,
-                    onClick = { onOptionsChange(options.copy(useUppercase = !options.useUppercase)) },
-                    label = { Text(stringResource(R.string.generator_uppercase)) }
+                    labelRes = R.string.generator_uppercase,
+                    onClick = { onOptionsChange(options.copy(useUppercase = !options.useUppercase)) }
                 )
-                FilterChip(
+                CharacterSetChip(
                     selected = options.useLowercase,
-                    onClick = { onOptionsChange(options.copy(useLowercase = !options.useLowercase)) },
-                    label = { Text(stringResource(R.string.generator_lowercase)) }
+                    labelRes = R.string.generator_lowercase,
+                    onClick = { onOptionsChange(options.copy(useLowercase = !options.useLowercase)) }
                 )
-                FilterChip(
+                CharacterSetChip(
                     selected = options.useDigits,
-                    onClick = { onOptionsChange(options.copy(useDigits = !options.useDigits)) },
-                    label = { Text(stringResource(R.string.generator_digits)) }
+                    labelRes = R.string.generator_digits,
+                    onClick = { onOptionsChange(options.copy(useDigits = !options.useDigits)) }
                 )
-                FilterChip(
+                CharacterSetChip(
                     selected = options.useSymbols,
-                    onClick = { onOptionsChange(options.copy(useSymbols = !options.useSymbols)) },
-                    label = { Text(stringResource(R.string.generator_symbols)) }
+                    labelRes = R.string.generator_symbols,
+                    onClick = { onOptionsChange(options.copy(useSymbols = !options.useSymbols)) }
                 )
             }
             Button(
                 onClick = onGenerateClick,
                 enabled = options.hasAnyCharacterSet,
-                modifier = Modifier.fillMaxWidth()
+                shape = CircleShape,
+                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
             ) {
-                Text(stringResource(R.string.generator_generate))
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = stringResource(R.string.generator_generate),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
             }
         }
     }
+}
+
+@Composable
+private fun CharacterSetChip(selected: Boolean, labelRes: Int, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(stringResource(labelRes)) },
+        shape = CircleShape
+    )
 }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app mark, sized for in-app use. Tinted by the caller. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M54,24 L83,33.5 L83,52 C83,66.5 71,78.5 54,85 C37,78.5 25,66.5 25,52 L25,33.5 Z M54,38.5 C49.3,38.5 45.5,42.3 45.5,47 C45.5,50.2 47.3,53 49.8,54.4 L47.5,66.5 C47.3,67.6 48.1,68.5 49.2,68.5 L58.8,68.5 C59.9,68.5 60.7,67.6 60.5,66.5 L58.2,54.4 C60.7,53 62.5,50.2 62.5,47 C62.5,42.3 58.7,38.5 54,38.5 Z" />
+</vector>
