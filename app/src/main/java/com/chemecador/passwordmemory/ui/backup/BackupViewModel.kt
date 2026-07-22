@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chemecador.passwordmemory.data.backup.BackupFormatException
 import com.chemecador.passwordmemory.data.backup.BackupManager
+import com.chemecador.passwordmemory.data.importer.CredentialImportManager
+import com.chemecador.passwordmemory.data.importer.CredentialImportPreview
+import com.chemecador.passwordmemory.data.importer.CsvFormatException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,43 +21,125 @@ sealed interface BackupMessage {
     data class Imported(val count: Int) : BackupMessage
     data object WrongPassphrase : BackupMessage
     data object Failed : BackupMessage
+    data object CsvUnreadable : BackupMessage
+    data object CsvEmpty : BackupMessage
+    data object CsvSourceDeleted : BackupMessage
+    data object CsvSourceKept : BackupMessage
 }
+
+/** What a selected CSV holds, as counts only: the parsed passwords never reach the UI layer. */
+data class CsvPreviewUi(
+    val fresh: Int,
+    val duplicates: Int,
+    val skipped: Int
+)
 
 data class BackupUiState(
     val isBusy: Boolean = false,
-    val message: BackupMessage? = null
+    val message: BackupMessage? = null,
+    val csvPreview: CsvPreviewUi? = null,
+    val askToDeleteCsv: Boolean = false
 )
 
 @HiltViewModel
 class BackupViewModel @Inject constructor(
-    private val backupManager: BackupManager
+    private val backupManager: BackupManager,
+    private val importManager: CredentialImportManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BackupUiState())
     val uiState: StateFlow<BackupUiState> = _uiState.asStateFlow()
 
-    fun onExport(target: Uri, passphrase: String) = run(passphrase) {
+    /** Held between the preview and the confirmation, and dropped as soon as either ends. */
+    private var pendingCsv: CredentialImportPreview? = null
+    private var pendingSource: Uri? = null
+
+    fun onExport(target: Uri, passphrase: String) = runWithPassphrase(passphrase) {
         BackupMessage.Exported(backupManager.export(target, passphrase.toCharArray()))
     }
 
-    fun onImport(source: Uri, passphrase: String) = run(passphrase) {
+    fun onImport(source: Uri, passphrase: String) = runWithPassphrase(passphrase) {
         BackupMessage.Imported(backupManager.import(source, passphrase.toCharArray()))
+    }
+
+    /** Reads the CSV and reports what it would add; nothing is stored yet. */
+    fun onCsvSelected(source: Uri) = runBusy {
+        val preview = importManager.preview(source)
+        if (preview.isEmpty) {
+            BackupMessage.CsvEmpty
+        } else {
+            pendingCsv = preview
+            pendingSource = source
+            _uiState.update {
+                it.copy(
+                    csvPreview = CsvPreviewUi(
+                        fresh = preview.fresh.size,
+                        duplicates = preview.duplicates.size,
+                        skipped = preview.skipped
+                    )
+                )
+            }
+            null
+        }
+    }
+
+    fun onCsvConfirm(includeDuplicates: Boolean) {
+        val preview = pendingCsv ?: return
+        pendingCsv = null
+        _uiState.update { it.copy(csvPreview = null) }
+        runBusy {
+            val entries = preview.fresh + if (includeDuplicates) preview.duplicates else emptyList()
+            val count = importManager.import(entries)
+            _uiState.update { it.copy(askToDeleteCsv = pendingSource != null) }
+            BackupMessage.Imported(count)
+        }
+    }
+
+    fun onCsvCancel() {
+        pendingCsv = null
+        pendingSource = null
+        _uiState.update { it.copy(csvPreview = null) }
+    }
+
+    /** Offered right after importing: the CSV holds every password in clear text. */
+    fun onDeleteCsvSource() {
+        val source = pendingSource ?: return
+        pendingSource = null
+        _uiState.update { it.copy(askToDeleteCsv = false) }
+        runBusy {
+            if (importManager.deleteSource(source)) {
+                BackupMessage.CsvSourceDeleted
+            } else {
+                BackupMessage.CsvSourceKept
+            }
+        }
+    }
+
+    fun onKeepCsvSource() {
+        pendingSource = null
+        _uiState.update { it.copy(askToDeleteCsv = false, message = BackupMessage.CsvSourceKept) }
     }
 
     fun onMessageShown() = _uiState.update { it.copy(message = null) }
 
-    private fun run(passphrase: String, block: suspend () -> BackupMessage) {
+    private fun runWithPassphrase(passphrase: String, block: suspend () -> BackupMessage) {
         if (passphrase.isEmpty()) return
+        runBusy(block)
+    }
+
+    private fun runBusy(block: suspend () -> BackupMessage?) {
         _uiState.update { it.copy(isBusy = true) }
         viewModelScope.launch {
             val message = try {
                 block()
             } catch (e: BackupFormatException) {
                 BackupMessage.WrongPassphrase
+            } catch (e: CsvFormatException) {
+                BackupMessage.CsvUnreadable
             } catch (e: Exception) {
                 BackupMessage.Failed
             }
-            _uiState.update { it.copy(isBusy = false, message = message) }
+            _uiState.update { it.copy(isBusy = false, message = message ?: it.message) }
         }
     }
 }

@@ -6,6 +6,7 @@
     <string name="action_delete">Eliminar</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_continue">Continuar</string>
+    <string name="action_keep">Conservar</string>
     <string name="action_toggle_visibility">Mostrar u ocultar la contraseña</string>
 
     <!-- Lock -->
@@ -96,4 +97,30 @@
     <string name="backup_imported">%1$d entradas importadas</string>
     <string name="backup_wrong_passphrase">Contraseña incorrecta o el fichero no es una copia válida.</string>
     <string name="backup_failed">No se ha podido completar la operación.</string>
+
+    <!-- Importar desde Google / Chrome -->
+    <string name="csv_import">Importar de Google o Chrome</string>
+    <string name="csv_import_description">Trae contraseñas exportadas en un fichero CSV.</string>
+    <string name="csv_import_steps">Primero exporta tus contraseñas:\n\n• En este móvil: Ajustes › Google › Autocompletar › Gestor de contraseñas › Ajustes › Exportar contraseñas.\n• En un ordenador: Chrome › chrome://password-manager/settings › Exportar.\n\nLuego elige el fichero aquí. Todo se importa como entradas cifradas.</string>
+    <string name="csv_import_warning">Ese fichero contiene todas tus contraseñas en texto plano. Bórralo en cuanto termine la importación.</string>
+    <string name="csv_choose_file">Elegir fichero</string>
+    <string name="csv_preview_title">Listo para importar</string>
+    <plurals name="csv_preview_new">
+        <item quantity="one">Se añadirá %1$d entrada nueva.</item>
+        <item quantity="other">Se añadirán %1$d entradas nuevas.</item>
+    </plurals>
+    <plurals name="csv_preview_duplicates">
+        <item quantity="one">Importar también %1$d entrada que ya tienes</item>
+        <item quantity="other">Importar también %1$d entradas que ya tienes</item>
+    </plurals>
+    <plurals name="csv_preview_skipped">
+        <item quantity="one">Se ha descartado %1$d fila: sin contraseña o sin servicio.</item>
+        <item quantity="other">Se han descartado %1$d filas: sin contraseña o sin servicio.</item>
+    </plurals>
+    <string name="csv_empty">No se han encontrado credenciales en ese fichero.</string>
+    <string name="csv_unreadable">Ese fichero no es una exportación de contraseñas. Busca el CSV que exportaste de Google o Chrome.</string>
+    <string name="csv_delete_title">¿Eliminar el fichero CSV?</string>
+    <string name="csv_delete_message">Tus contraseñas ya están guardadas a salvo. El CSV sigue teniéndolas en texto plano, así que lo prudente es borrarlo.</string>
+    <string name="csv_source_deleted">Fichero CSV eliminado</string>
+    <string name="csv_source_kept">Acuérdate de borrar el CSV: contiene tus contraseñas en texto plano.</string>
 </resources>

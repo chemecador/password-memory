@@ -3,6 +3,7 @@ package com.chemecador.passwordmemory.data.repository
 import com.chemecador.passwordmemory.data.backup.BackupEntry
 import com.chemecador.passwordmemory.data.db.PasswordEntryDao
 import com.chemecador.passwordmemory.data.db.PasswordEntryEntity
+import com.chemecador.passwordmemory.data.importer.EntryKey
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
 import com.chemecador.passwordmemory.security.CryptoManager
@@ -146,6 +147,10 @@ class PasswordRepository @Inject constructor(
             ProtectionMode.HASHED -> entity.toBackupEntry()
         }
     }
+
+    /** Identity of every stored entry, so an import can tell apart what is already here. */
+    suspend fun existingKeys(): Set<EntryKey> =
+        dao.getAll().mapTo(mutableSetOf()) { EntryKey.of(it.serviceName, it.username) }
 
     /** Restores backed up entries, re-encrypting the recoverable ones with this device's key. */
     suspend fun importEntries(entries: List<BackupEntry>): Int {

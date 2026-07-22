@@ -5,6 +5,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +18,8 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.chemecador.passwordmemory.ui.lock.AppLockSuppressor
+import com.chemecador.passwordmemory.ui.lock.LocalAppLockSuppressor
 import com.chemecador.passwordmemory.ui.lock.LockResult
 import com.chemecador.passwordmemory.ui.lock.LockScreen
 import com.chemecador.passwordmemory.ui.lock.canAuthenticate
@@ -52,6 +55,7 @@ private fun AppRoot(activity: FragmentActivity) {
     var unlocked by remember { mutableStateOf(false) }
     var unavailable by remember { mutableStateOf(false) }
     var promptShown by remember { mutableStateOf(false) }
+    var pickerPending by remember { mutableStateOf(false) }
     val title = stringResource(R.string.lock_prompt_title)
     val subtitle = stringResource(R.string.lock_prompt_subtitle)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -71,12 +75,19 @@ private fun AppRoot(activity: FragmentActivity) {
         unavailable = !activity.canAuthenticate()
     }
 
-    // Re-lock on background so a password left on screen is not visible in the recents list.
+    // Re-lock on background so a password left on screen is not visible in the recents list. The
+    // system file picker is the one exception: re-locking there would destroy the screen waiting
+    // for its result. The exemption is spent on the first stop, so a later trip to the background
+    // locks the app as usual.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
-                unlocked = false
-                promptShown = false
+                if (pickerPending) {
+                    pickerPending = false
+                } else {
+                    unlocked = false
+                    promptShown = false
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -88,7 +99,10 @@ private fun AppRoot(activity: FragmentActivity) {
     }
 
     if (unlocked) {
-        PasswordMemoryNavHost(modifier = Modifier.fillMaxSize())
+        val suppressor = remember { AppLockSuppressor { pickerPending = true } }
+        CompositionLocalProvider(LocalAppLockSuppressor provides suppressor) {
+            PasswordMemoryNavHost(modifier = Modifier.fillMaxSize())
+        }
     } else {
         LockScreen(
             unavailable = unavailable,

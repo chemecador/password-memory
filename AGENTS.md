@@ -32,6 +32,7 @@ When creating an entry, the user chooses between two protection modes **per entr
   - On export, a **one-time passphrase** (not saved) is requested to encrypt the file (key derived with PBKDF2, AES-GCM). This is necessary because the Keystore key is not exportable.
   - On import, the same passphrase is requested to decrypt and restore entries.
   - Hashed entries are exported as-is (hash + salt); encrypted entries are exported in plaintext within the encrypted file and re-encrypted with the target device's Keystore on import.
+- **CSV import** (Google Password Manager / Chrome): the user exports a CSV from Google and picks it with SAF. Columns are matched by header name (`name,url,username,password,note`), everything is imported in encrypted mode, duplicates (same service + username) are shown before writing anything, and the app offers to delete the plaintext CSV afterwards. The file is never copied into app storage.
 - **Clipboard**: when copying a password, use `ClipDescription.EXTRA_IS_SENSITIVE` so it doesn't appear in the clipboard preview.
 - `android:allowBackup="false"` in the manifest (only app-initiated backups, no system backup).
 - Never log passwords, hashes, salts, or cryptographic material.
@@ -61,7 +62,8 @@ com.chemecador.passwordmemory
 ├── data
 │   ├── db          # Room: entities, DAOs, database
 │   ├── repository
-│   └── backup      # export/import
+│   ├── backup      # export/import
+│   └── importer    # CSV from Google Password Manager / Chrome
 ├── domain          # models and use cases if valuable
 ├── security        # CryptoManager (Keystore/AES), Hasher (SHA-256+salt), generator
 ├── ui

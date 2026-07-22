@@ -1,5 +1,6 @@
 package com.chemecador.passwordmemory.data.repository
 
+import com.chemecador.passwordmemory.data.importer.EntryKey
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
 import com.chemecador.passwordmemory.security.PasswordHasher
 import kotlinx.coroutines.flow.first
@@ -23,6 +24,17 @@ class PasswordRepositoryTest {
         hint = "the usual one",
         category = "Email"
     )
+
+    @Test
+    fun `existing keys ignore case and blank usernames`() = runTest {
+        repository.createEncrypted(draft.copy(serviceName = "GMail"), "s3cr3t")
+        repository.createEncrypted(draft.copy(serviceName = "Bank", username = " "), "s3cr3t")
+
+        val keys = repository.existingKeys()
+
+        assertTrue(EntryKey.of("gmail", "SOMEONE@example.com") in keys)
+        assertTrue(EntryKey.of("Bank", null) in keys)
+    }
 
     @Test
     fun `an encrypted entry can be revealed`() = runTest {

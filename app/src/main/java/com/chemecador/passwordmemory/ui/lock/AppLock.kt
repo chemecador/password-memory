@@ -4,11 +4,24 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.fragment.app.FragmentActivity
 import androidx.core.content.ContextCompat
 
 /** Biometric with fallback to the device PIN/pattern/password. There is no master password. */
 const val ALLOWED_AUTHENTICATORS = BIOMETRIC_WEAK or DEVICE_CREDENTIAL
+
+/**
+ * Lets a screen warn the app lock that it is about to hand control to another app, typically the
+ * system file picker. Without it the app would re-lock on the way out, tear down the navigation
+ * graph, and drop the result the picker comes back with.
+ */
+fun interface AppLockSuppressor {
+    fun onLeavingForPicker()
+}
+
+/** No-op by default, so previews and tests can render a screen without the lock around it. */
+val LocalAppLockSuppressor = staticCompositionLocalOf { AppLockSuppressor {} }
 
 sealed interface LockResult {
     data object Unlocked : LockResult

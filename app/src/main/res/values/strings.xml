@@ -8,6 +8,7 @@
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_continue">Continue</string>
+    <string name="action_keep">Keep</string>
     <string name="action_toggle_visibility">Show or hide password</string>
 
     <!-- Lock -->
@@ -98,4 +99,30 @@
     <string name="backup_imported">%1$d entries imported</string>
     <string name="backup_wrong_passphrase">Wrong passphrase, or the file is not a valid backup.</string>
     <string name="backup_failed">The operation could not be completed.</string>
+
+    <!-- Import from Google / Chrome -->
+    <string name="csv_import">Import from Google or Chrome</string>
+    <string name="csv_import_description">Bring in passwords exported as a CSV file.</string>
+    <string name="csv_import_steps">Export your passwords first:\n\n• On this phone: Settings › Google › Autofill › Google Password Manager › Settings › Export passwords.\n• On a computer: Chrome › chrome://password-manager/settings › Export.\n\nThen pick the file here. Everything is imported as encrypted entries.</string>
+    <string name="csv_import_warning">That file holds every password in plain text. Delete it as soon as the import is done.</string>
+    <string name="csv_choose_file">Choose file</string>
+    <string name="csv_preview_title">Ready to import</string>
+    <plurals name="csv_preview_new">
+        <item quantity="one">%1$d new entry will be added.</item>
+        <item quantity="other">%1$d new entries will be added.</item>
+    </plurals>
+    <plurals name="csv_preview_duplicates">
+        <item quantity="one">Also import %1$d entry you already have</item>
+        <item quantity="other">Also import %1$d entries you already have</item>
+    </plurals>
+    <plurals name="csv_preview_skipped">
+        <item quantity="one">%1$d row was skipped: no password or no service name.</item>
+        <item quantity="other">%1$d rows were skipped: no password or no service name.</item>
+    </plurals>
+    <string name="csv_empty">No credentials were found in that file.</string>
+    <string name="csv_unreadable">That file is not a password export. Look for the CSV you exported from Google or Chrome.</string>
+    <string name="csv_delete_title">Delete the CSV file?</string>
+    <string name="csv_delete_message">Your passwords are safely stored now. The CSV still holds them in plain text, so deleting it is the safe thing to do.</string>
+    <string name="csv_source_deleted">CSV file deleted</string>
+    <string name="csv_source_kept">Remember to delete the CSV: it holds your passwords in plain text.</string>
 </resources>

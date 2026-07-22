@@ -1,5 +1,7 @@
 package com.chemecador.passwordmemory.ui.backup
 
+import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -15,12 +17,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Password
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -53,8 +59,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chemecador.passwordmemory.R
 import com.chemecador.passwordmemory.data.backup.BackupManager
+import com.chemecador.passwordmemory.data.importer.CredentialImportManager
+import com.chemecador.passwordmemory.ui.lock.LocalAppLockSuppressor
 
 private enum class PendingAction { EXPORT, IMPORT }
+
+/**
+ * Same picker as [ActivityResultContracts.OpenDocument], asking for write access as well so the
+ * plaintext CSV can be deleted once its contents are safely encrypted in the database.
+ */
+private class OpenCredentialCsv : ActivityResultContracts.OpenDocument() {
+    override fun createIntent(context: Context, input: Array<String>): Intent =
+        super.createIntent(context, input).addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,8 +82,13 @@ fun BackupScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    // Opening the file picker sends the app to the background: without this the lock would kick in
+    // and this screen would be gone before the picker returns.
+    val lockSuppressor = LocalAppLockSuppressor.current
     var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
     var passphrase by remember { mutableStateOf("") }
+    var showCsvInstructions by remember { mutableStateOf(false) }
+    var includeDuplicates by remember { mutableStateOf(false) }
 
     val createLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(BackupManager.MIME_TYPE)
@@ -79,6 +101,9 @@ fun BackupScreen(
     ) { uri ->
         uri?.let { viewModel.onImport(it, passphrase) }
         passphrase = ""
+    }
+    val csvLauncher = rememberLauncherForActivityResult(OpenCredentialCsv()) { uri ->
+        uri?.let(viewModel::onCsvSelected)
     }
 
     val message = state.message
@@ -134,6 +159,13 @@ fun BackupScreen(
                 enabled = !state.isBusy,
                 onClick = { pendingAction = PendingAction.IMPORT }
             )
+            ActionCard(
+                icon = Icons.Rounded.Password,
+                title = stringResource(R.string.csv_import),
+                description = stringResource(R.string.csv_import_description),
+                enabled = !state.isBusy,
+                onClick = { showCsvInstructions = true }
+            )
             if (state.isBusy) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
@@ -152,6 +184,7 @@ fun BackupScreen(
             },
             onConfirm = {
                 pendingAction = null
+                lockSuppressor.onLeavingForPicker()
                 when (action) {
                     PendingAction.EXPORT ->
                         createLauncher.launch(BackupManager.suggestedFileName())
@@ -161,6 +194,141 @@ fun BackupScreen(
             }
         )
     }
+
+    if (showCsvInstructions) {
+        CsvInstructionsDialog(
+            onDismiss = { showCsvInstructions = false },
+            onConfirm = {
+                showCsvInstructions = false
+                includeDuplicates = false
+                lockSuppressor.onLeavingForPicker()
+                csvLauncher.launch(CredentialImportManager.MIME_TYPES)
+            }
+        )
+    }
+
+    state.csvPreview?.let { preview ->
+        CsvPreviewDialog(
+            preview = preview,
+            includeDuplicates = includeDuplicates,
+            onIncludeDuplicatesChange = { includeDuplicates = it },
+            onDismiss = viewModel::onCsvCancel,
+            onConfirm = { viewModel.onCsvConfirm(includeDuplicates) }
+        )
+    }
+
+    if (state.askToDeleteCsv) {
+        DeleteCsvDialog(
+            onDelete = viewModel::onDeleteCsvSource,
+            onKeep = viewModel::onKeepCsvSource
+        )
+    }
+}
+
+@Composable
+private fun CsvInstructionsDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.Password, contentDescription = null) },
+        title = { Text(stringResource(R.string.csv_import)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.csv_import_steps))
+                Text(
+                    text = stringResource(R.string.csv_import_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.csv_choose_file))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
+    )
+}
+
+@Composable
+private fun CsvPreviewDialog(
+    preview: CsvPreviewUi,
+    includeDuplicates: Boolean,
+    onIncludeDuplicatesChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.FileDownload, contentDescription = null) },
+        title = { Text(stringResource(R.string.csv_preview_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    pluralStringResource(
+                        R.plurals.csv_preview_new,
+                        preview.fresh,
+                        preview.fresh
+                    )
+                )
+                if (preview.skipped > 0) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.csv_preview_skipped,
+                            preview.skipped,
+                            preview.skipped
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (preview.duplicates > 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Checkbox(checked = includeDuplicates, onCheckedChange = onIncludeDuplicatesChange)
+                        Text(
+                            pluralStringResource(
+                                R.plurals.csv_preview_duplicates,
+                                preview.duplicates,
+                                preview.duplicates
+                            )
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = preview.fresh > 0 || includeDuplicates
+            ) {
+                Text(stringResource(R.string.backup_import))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
+    )
+}
+
+@Composable
+private fun DeleteCsvDialog(onDelete: () -> Unit, onKeep: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onKeep,
+        icon = { Icon(Icons.Rounded.DeleteForever, contentDescription = null) },
+        title = { Text(stringResource(R.string.csv_delete_title)) },
+        text = { Text(stringResource(R.string.csv_delete_message)) },
+        confirmButton = {
+            TextButton(onClick = onDelete) { Text(stringResource(R.string.action_delete)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeep) { Text(stringResource(R.string.action_keep)) }
+        }
+    )
 }
 
 @Composable
@@ -295,6 +463,10 @@ private fun BackupMessage.textRes(): Int = when (this) {
     is BackupMessage.Imported -> R.string.backup_imported
     BackupMessage.WrongPassphrase -> R.string.backup_wrong_passphrase
     BackupMessage.Failed -> R.string.backup_failed
+    BackupMessage.CsvUnreadable -> R.string.csv_unreadable
+    BackupMessage.CsvEmpty -> R.string.csv_empty
+    BackupMessage.CsvSourceDeleted -> R.string.csv_source_deleted
+    BackupMessage.CsvSourceKept -> R.string.csv_source_kept
 }
 
 private fun BackupMessage.count(): Int = when (this) {
