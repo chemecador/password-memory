@@ -1,0 +1,85 @@
+<resources>
+    <!-- Actions -->
+    <string name="action_back">Atrás</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_continue">Continuar</string>
+    <string name="action_toggle_visibility">Mostrar u ocultar la contraseña</string>
+
+    <!-- Lock -->
+    <string name="lock_message">Desbloquea para ver tus entradas.</string>
+    <string name="lock_unavailable">Configura un bloqueo de pantalla (PIN, patrón o biometría) en el dispositivo para usar Password Memory.</string>
+    <string name="lock_unlock">Desbloquear</string>
+    <string name="lock_prompt_title">Desbloquear Password Memory</string>
+    <string name="lock_prompt_subtitle">Usa tu biometría o el PIN del dispositivo</string>
+
+    <!-- List -->
+    <string name="list_search">Buscar por servicio</string>
+    <string name="list_add">Nueva entrada</string>
+    <string name="list_menu">Más opciones</string>
+    <string name="list_favorites">Favoritos</string>
+    <string name="list_toggle_favorite">Marcar como favorito</string>
+    <string name="list_empty">Aún no hay entradas. Pulsa + para añadir la primera.</string>
+    <string name="list_empty_filtered">Ninguna entrada coincide con estos filtros.</string>
+
+    <!-- Protection modes -->
+    <string name="mode_encrypted">Cifrada</string>
+    <string name="mode_hashed">Hasheada</string>
+    <string name="mode_encrypted_hint">Se guarda cifrada: podrás verla y copiarla cuando quieras.</string>
+    <string name="mode_hashed_warning">Cuidado: una contraseña hasheada no se puede recuperar. Solo podrás comprobar si aciertas al escribirla.</string>
+
+    <!-- Fields -->
+    <string name="field_service">Servicio</string>
+    <string name="field_username">Correo o usuario</string>
+    <string name="field_password">Contraseña</string>
+    <string name="field_hint">Pista</string>
+    <string name="field_hint_help">Texto libre que te ayude a recordarla.</string>
+    <string name="field_category">Categoría</string>
+
+    <!-- Create / edit -->
+    <string name="create_title">Nueva entrada</string>
+    <string name="edit_title">Editar entrada</string>
+    <string name="edit_password_optional">Déjalo vacío para mantener la contraseña actual.</string>
+    <string name="edit_hashed_password_locked">Esta contraseña está hasheada y no se puede cambiar. Elimina la entrada y crea una nueva.</string>
+
+    <!-- Generator -->
+    <string name="generator_title">Generar contraseña</string>
+    <string name="generator_length">Longitud: %1$d</string>
+    <string name="generator_uppercase">A-Z</string>
+    <string name="generator_lowercase">a-z</string>
+    <string name="generator_digits">0-9</string>
+    <string name="generator_symbols">Símbolos</string>
+    <string name="generator_generate">Generar</string>
+
+    <!-- Detail -->
+    <string name="detail_mode">Protección</string>
+    <string name="detail_reveal">Ver contraseña</string>
+    <string name="detail_hide">Ocultar</string>
+    <string name="detail_copy">Copiar contraseña</string>
+    <string name="detail_copied">Contraseña copiada</string>
+    <string name="detail_reveal_failed">No se ha podido descifrar esta contraseña. Puede que la clave se perdiera tras una reinstalación: restaura una copia de seguridad para recuperarla.</string>
+    <string name="detail_guess_explanation">Esta contraseña no se guarda: escríbela para comprobar si es la correcta. No hay límite de intentos.</string>
+    <string name="detail_guess_label">Tu intento</string>
+    <string name="detail_guess_check">Comprobar</string>
+    <string name="detail_guess_wrong">Esa no es la contraseña.</string>
+    <string name="detail_guess_correct">Es esa. Ya puedes copiarla.</string>
+
+    <!-- Delete -->
+    <string name="delete_title">Eliminar entrada</string>
+    <string name="delete_message">¿Eliminar \"%1$s\"? No se puede deshacer.</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Copia de seguridad</string>
+    <string name="backup_explanation">La clave de cifrado nunca sale de este dispositivo, así que un fichero de copia de seguridad es la única forma de llevar tus entradas a otro dispositivo o recuperarlas tras una reinstalación. El fichero se cifra con una contraseña de un solo uso que no se guarda en ningún sitio: si la olvidas, la copia queda inservible.</string>
+    <string name="backup_export">Exportar</string>
+    <string name="backup_import">Importar</string>
+    <string name="backup_passphrase">Contraseña de la copia</string>
+    <string name="backup_passphrase_export_help">Elige una contraseña para cifrar el fichero. La necesitarás para importarlo más adelante.</string>
+    <string name="backup_passphrase_import_help">Escribe la contraseña que usaste al exportar la copia.</string>
+    <string name="backup_exported">%1$d entradas exportadas</string>
+    <string name="backup_imported">%1$d entradas importadas</string>
+    <string name="backup_wrong_passphrase">Contraseña incorrecta o el fichero no es una copia válida.</string>
+    <string name="backup_failed">No se ha podido completar la operación.</string>
+</resources>

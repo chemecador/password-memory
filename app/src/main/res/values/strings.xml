@@ -1,3 +1,87 @@
 <resources>
     <string name="app_name">Password Memory</string>
+
+    <!-- Actions -->
+    <string name="action_back">Back</string>
+    <string name="action_save">Save</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_toggle_visibility">Show or hide password</string>
+
+    <!-- Lock -->
+    <string name="lock_message">Unlock to see your entries.</string>
+    <string name="lock_unavailable">Set up a screen lock (PIN, pattern or biometrics) on your device to use Password Memory.</string>
+    <string name="lock_unlock">Unlock</string>
+    <string name="lock_prompt_title">Unlock Password Memory</string>
+    <string name="lock_prompt_subtitle">Use your biometrics or device PIN</string>
+
+    <!-- List -->
+    <string name="list_search">Search by service</string>
+    <string name="list_add">New entry</string>
+    <string name="list_menu">More options</string>
+    <string name="list_favorites">Favorites</string>
+    <string name="list_toggle_favorite">Mark as favorite</string>
+    <string name="list_empty">No entries yet. Tap + to add your first one.</string>
+    <string name="list_empty_filtered">No entries match these filters.</string>
+
+    <!-- Protection modes -->
+    <string name="mode_encrypted">Encrypted</string>
+    <string name="mode_hashed">Hashed</string>
+    <string name="mode_encrypted_hint">Stored encrypted: you can view and copy it whenever you want.</string>
+    <string name="mode_hashed_warning">Careful: a hashed password cannot be recovered. You will only be able to check guesses against it.</string>
+
+    <!-- Fields -->
+    <string name="field_service">Service</string>
+    <string name="field_username">Email or username</string>
+    <string name="field_password">Password</string>
+    <string name="field_hint">Hint</string>
+    <string name="field_hint_help">Free text to help you remember it.</string>
+    <string name="field_category">Category</string>
+
+    <!-- Create / edit -->
+    <string name="create_title">New entry</string>
+    <string name="edit_title">Edit entry</string>
+    <string name="edit_password_optional">Leave it empty to keep the current password.</string>
+    <string name="edit_hashed_password_locked">This password is hashed and cannot be changed. Delete the entry and create a new one.</string>
+
+    <!-- Generator -->
+    <string name="generator_title">Generate password</string>
+    <string name="generator_length">Length: %1$d</string>
+    <string name="generator_uppercase">A-Z</string>
+    <string name="generator_lowercase">a-z</string>
+    <string name="generator_digits">0-9</string>
+    <string name="generator_symbols">Symbols</string>
+    <string name="generator_generate">Generate</string>
+
+    <!-- Detail -->
+    <string name="detail_mode">Protection</string>
+    <string name="detail_reveal">Show password</string>
+    <string name="detail_hide">Hide</string>
+    <string name="detail_copy">Copy password</string>
+    <string name="detail_copied">Password copied</string>
+    <string name="detail_reveal_failed">This password could not be decrypted. The key may have been lost after a reinstall: restore a backup to recover it.</string>
+    <string name="detail_guess_explanation">This password is not stored: type it to check whether it is the right one. There is no limit on attempts.</string>
+    <string name="detail_guess_label">Your guess</string>
+    <string name="detail_guess_check">Check</string>
+    <string name="detail_guess_wrong">That is not the password.</string>
+    <string name="detail_guess_correct">That is it. You can copy it now.</string>
+
+    <!-- Delete -->
+    <string name="delete_title">Delete entry</string>
+    <string name="delete_message">Delete \"%1$s\"? This cannot be undone.</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Backup</string>
+    <string name="backup_explanation">The encryption key never leaves this device, so a backup file is the only way to move your entries to another device or recover them after a reinstall. The file is encrypted with a one-time passphrase that is not saved anywhere: if you forget it, the backup is unusable.</string>
+    <string name="backup_export">Export</string>
+    <string name="backup_import">Import</string>
+    <string name="backup_passphrase">Passphrase</string>
+    <string name="backup_passphrase_export_help">Choose a passphrase to encrypt the backup file. You will need it to import it later.</string>
+    <string name="backup_passphrase_import_help">Enter the passphrase used when the backup was exported.</string>
+    <string name="backup_exported">%1$d entries exported</string>
+    <string name="backup_imported">%1$d entries imported</string>
+    <string name="backup_wrong_passphrase">Wrong passphrase, or the file is not a valid backup.</string>
+    <string name="backup_failed">The operation could not be completed.</string>
 </resources>
