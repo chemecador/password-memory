@@ -23,6 +23,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Committed schemas are the reference every future migration is tested against; the assets
+    // entry is what lets MigrationTestHelper open version 1 from an instrumented test.
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+    sourceSets.getByName("androidTest") {
+        assets.directories.add("$projectDir/schemas")
+    }
+
     buildTypes {
         release {
             optimization {
@@ -37,6 +46,20 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+// room-testing reads the exported schemas with kotlinx-serialization, and its serializers were
+// generated against core 1.8, where `typeParametersSerializers()` gained a default implementation.
+// The Compose BOM strictly pins core to 1.7.3, where it is still abstract, so on a device every
+// schema read dies with AbstractMethodError — invisible to the JVM tests. `force` is what overrides
+// a `strictly`, and it has to apply to every configuration because AGP resolves the androidTest
+// classpath consistently with the app's. The app itself never uses kotlinx-serialization: it only
+// ever arrives transitively, so this moves nothing in production code.
+configurations.configureEach {
+    resolutionStrategy.force(
+        "org.jetbrains.kotlinx:kotlinx-serialization-core:${libs.versions.kotlinxSerialization.get()}",
+        "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:${libs.versions.kotlinxSerialization.get()}"
+    )
 }
 
 dependencies {
@@ -66,6 +89,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.room.testing)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

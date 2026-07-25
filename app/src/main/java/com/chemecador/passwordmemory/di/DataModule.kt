@@ -18,7 +18,9 @@ object DataModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): PasswordDatabase =
-        Room.databaseBuilder(context, PasswordDatabase::class.java, PasswordDatabase.NAME).build()
+        Room.databaseBuilder(context, PasswordDatabase::class.java, PasswordDatabase.NAME)
+            .addMigrations(*PasswordDatabase.MIGRATIONS)
+            .build()
 
     @Provides
     fun provideEntryDao(database: PasswordDatabase): PasswordEntryDao = database.entryDao()
