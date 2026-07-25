@@ -67,6 +67,7 @@ fun EntryListScreen(
     onEntryClick: (Long) -> Unit,
     onCreateClick: () -> Unit,
     onBackupClick: () -> Unit,
+    onAutofillClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
@@ -78,7 +79,12 @@ fun EntryListScreen(
         topBar = {
             TopAppBar(
                 title = { Header(count = state.entries.size) },
-                actions = { OverflowMenu(onBackupClick = onBackupClick) },
+                actions = {
+                    OverflowMenu(
+                        onBackupClick = onBackupClick,
+                        onAutofillClick = onAutofillClick
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -148,13 +154,20 @@ private fun Header(count: Int) {
 }
 
 @Composable
-private fun OverflowMenu(onBackupClick: () -> Unit) {
+private fun OverflowMenu(onBackupClick: () -> Unit, onAutofillClick: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.list_menu))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.autofill_title)) },
+                onClick = {
+                    expanded = false
+                    onAutofillClick()
+                }
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.backup_title)) },
                 onClick = {

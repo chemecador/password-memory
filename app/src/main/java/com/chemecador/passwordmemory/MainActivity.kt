@@ -3,6 +3,7 @@ package com.chemecador.passwordmemory
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -53,6 +54,9 @@ class MainActivity : FragmentActivity() {
 @Composable
 private fun AppRoot(activity: FragmentActivity) {
     var unlocked by remember { mutableStateOf(false) }
+    // Kept apart from [unlocked] so the lock screen stays composed on top while it plays its
+    // unlock animation over the content that has already appeared underneath.
+    var revealed by remember { mutableStateOf(false) }
     var unavailable by remember { mutableStateOf(false) }
     var promptShown by remember { mutableStateOf(false) }
     var pickerPending by remember { mutableStateOf(false) }
@@ -86,6 +90,7 @@ private fun AppRoot(activity: FragmentActivity) {
                     pickerPending = false
                 } else {
                     unlocked = false
+                    revealed = false
                     promptShown = false
                 }
             }
@@ -98,16 +103,21 @@ private fun AppRoot(activity: FragmentActivity) {
         if (!unlocked && !promptShown && !unavailable) authenticate()
     }
 
-    if (unlocked) {
-        val suppressor = remember { AppLockSuppressor { pickerPending = true } }
-        CompositionLocalProvider(LocalAppLockSuppressor provides suppressor) {
-            PasswordMemoryNavHost(modifier = Modifier.fillMaxSize())
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (unlocked) {
+            val suppressor = remember { AppLockSuppressor { pickerPending = true } }
+            CompositionLocalProvider(LocalAppLockSuppressor provides suppressor) {
+                PasswordMemoryNavHost(modifier = Modifier.fillMaxSize())
+            }
         }
-    } else {
-        LockScreen(
-            unavailable = unavailable,
-            onUnlockClick = ::authenticate,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (!revealed) {
+            LockScreen(
+                unavailable = unavailable,
+                onUnlockClick = ::authenticate,
+                modifier = Modifier.fillMaxSize(),
+                unlocking = unlocked,
+                onUnlockAnimationEnd = { revealed = true }
+            )
+        }
     }
 }

@@ -110,6 +110,46 @@ class PasswordRepositoryTest {
     }
 
     @Test
+    fun `a credential caught by autofill is stored encrypted, with its origin as the hint`() =
+        runTest {
+            val id = repository.saveCaptured(
+                serviceName = "github.com",
+                username = "someone@example.com",
+                password = "s3cr3t",
+                origin = "https://github.com"
+            )
+
+            val entry = repository.getEntry(id)!!
+            assertEquals(ProtectionMode.ENCRYPTED, entry.mode)
+            assertEquals("https://github.com", entry.hint)
+            assertEquals("s3cr3t", repository.revealPassword(id))
+        }
+
+    @Test
+    fun `saving the same login twice replaces the password instead of duplicating it`() = runTest {
+        val first = repository.saveCaptured("github.com", "SomeOne@example.com", "old", null)
+
+        val second = repository.saveCaptured("GitHub.com", "someone@example.com", "new", null)
+
+        assertEquals(first, second)
+        assertEquals("new", repository.revealPassword(first))
+        assertEquals(1, repository.getEntries().size)
+    }
+
+    @Test
+    fun `a captured credential never overwrites a hashed entry`() = runTest {
+        val hashed = repository.createHashed(
+            EntryDraft(serviceName = "Bank", username = "me"),
+            "original"
+        )
+
+        val captured = repository.saveCaptured("Bank", "me", "s3cr3t", null)
+
+        assertTrue(repository.verifyGuess(hashed, "original"))
+        assertEquals("s3cr3t", repository.revealPassword(captured))
+    }
+
+    @Test
     fun `blank optional fields are normalised to null`() = runTest {
         val id = repository.createEncrypted(
             EntryDraft(serviceName = "  Netflix  ", username = "   ", hint = "", category = null),

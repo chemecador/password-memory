@@ -33,6 +33,11 @@ When creating an entry, the user chooses between two protection modes **per entr
   - On import, the same passphrase is requested to decrypt and restore entries.
   - Hashed entries are exported as-is (hash + salt); encrypted entries are exported in plaintext within the encrypted file and re-encrypted with the target device's Keystore on import.
 - **CSV import** (Google Password Manager / Chrome): the user exports a CSV from Google and picks it with SAF. Columns are matched by header name (`name,url,username,password,note`), everything is imported in encrypted mode, duplicates (same service + username) are shown before writing anything, and the app offers to delete the plaintext CSV afterwards. The file is never copied into app storage.
+- **Autofill** (`AutofillService`): once the user picks Password Memory as the system autofill service, Android asks this app to fill logins in other apps and browsers, and the "save password" prompt becomes this app's instead of Google's.
+  - Suggestions never carry the password: every dataset is *authenticated*, so the dropdown only shows service name and username, and `AutofillUnlockActivity` decrypts the entry after a `BiometricPrompt` and returns the finished dataset.
+  - Only encrypted entries are offered; a hashed password cannot be recovered, so there is nothing to fill with.
+  - Entries do not store the site they belong to, so matching is by name: the meaningful labels of the domain or package (`github` out of `github.com`, `twitter` out of `com.twitter.android`) against the service name and any URL left in the hint. Generous on purpose — the user still picks the row, and a last "choose another entry" row opens the full list.
+  - Saved credentials become encrypted entries named after the site (or the app), with the origin (`https://…` / `android://…`) kept in the hint so the same form is recognised next time. An existing encrypted entry with the same service and username has its password replaced instead of being duplicated.
 - **Clipboard**: when copying a password, use `ClipDescription.EXTRA_IS_SENSITIVE` so it doesn't appear in the clipboard preview.
 - `android:allowBackup="false"` in the manifest (only app-initiated backups, no system backup).
 - Never log passwords, hashes, salts, or cryptographic material.
@@ -44,6 +49,7 @@ When creating an entry, the user chooses between two protection modes **per entr
 - **Password generator** for random passwords (configurable length and character types) integrated into the creation form.
 - Add, edit, and delete entries. In a hashed entry, the password is not editable (only delete the entry and create a new one).
 - Detail screen: view/copy (encrypted) or guess form with unlimited attempts (hashed).
+- **Autofill**: fills logins in other apps and browsers and takes over the "save password" prompt. A screen in the overflow menu shows whether the app is the system autofill service and sends the user to the system picker.
 
 ## Tech Stack
 
@@ -59,6 +65,7 @@ When creating an entry, the user chooses between two protection modes **per entr
 
 ```
 com.chemecador.passwordmemory
+├── autofill        # AutofillService, form parsing, entry matching, unlock activity
 ├── data
 │   ├── db          # Room: entities, DAOs, database
 │   ├── repository
@@ -71,6 +78,7 @@ com.chemecador.passwordmemory
 │   ├── detail      # view/copy or guess
 │   ├── edit        # create/edit entry
 │   ├── lock        # biometric lock screen
+│   ├── autofill    # autofill settings and the entry picker shown while filling
 │   └── theme
 └── di              # Hilt modules
 ```

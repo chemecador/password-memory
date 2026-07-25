@@ -98,6 +98,24 @@
     <string name="backup_wrong_passphrase">Contraseña incorrecta o el fichero no es una copia válida.</string>
     <string name="backup_failed">No se ha podido completar la operación.</string>
 
+    <!-- Autocompletar -->
+    <string name="autofill_title">Autocompletar</string>
+    <string name="autofill_enabled">Password Memory es tu servicio de autocompletar</string>
+    <string name="autofill_enabled_detail">Android le pedirá a esta app que rellene tus inicios de sesión y que guarde las contraseñas que escribas.</string>
+    <string name="autofill_disabled">Autocompletar está desactivado</string>
+    <string name="autofill_disabled_detail">Otro servicio, normalmente Google, es quien rellena y guarda tus contraseñas.</string>
+    <string name="autofill_enable">Usar como servicio de autocompletar</string>
+    <string name="autofill_settings">Ajustes de autocompletar</string>
+    <string name="autofill_unsupported">Este dispositivo no ofrece servicio de autocompletar.</string>
+    <string name="autofill_how">Cuando esté activado: toca un campo de usuario o de contraseña y tus entradas aparecerán sobre el teclado. Y al escribir una contraseña nueva en cualquier sitio, el aviso de «Guardar contraseña» será el de esta app, y la entrada se guardará aquí cifrada.</string>
+    <string name="autofill_privacy">Nada sale del dispositivo. Las sugerencias se preparan aquí y ninguna contraseña se rellena hasta que desbloqueas con tu biometría o el PIN del dispositivo.</string>
+    <string name="autofill_pick">Elegir otra entrada</string>
+    <string name="autofill_pick_title">Elige una entrada</string>
+    <string name="autofill_pick_empty">No hay entradas que se puedan rellenar. Las contraseñas hasheadas no se pueden recuperar, así que no se ofrecen aquí.</string>
+    <string name="autofill_unlock_subtitle">Desbloquea para rellenar esta contraseña</string>
+    <string name="autofill_save_failed">No se ha podido guardar la contraseña.</string>
+    <string name="autofill_unknown_service">Sitio desconocido</string>
+
     <!-- Importar desde Google / Chrome -->
     <string name="csv_import">Importar de Google o Chrome</string>
     <string name="csv_import_description">Trae contraseñas exportadas en un fichero CSV.</string>

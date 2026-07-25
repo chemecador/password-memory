@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.chemecador.passwordmemory.ui.autofill.AutofillSettingsScreen
 import com.chemecador.passwordmemory.ui.backup.BackupScreen
 import com.chemecador.passwordmemory.ui.detail.EntryDetailScreen
 import com.chemecador.passwordmemory.ui.edit.EditEntryScreen
@@ -25,7 +26,8 @@ fun PasswordMemoryNavHost(modifier: Modifier = Modifier) {
             EntryListScreen(
                 onEntryClick = { navController.navigate(Destinations.detail(it)) },
                 onCreateClick = { navController.navigate(Destinations.edit()) },
-                onBackupClick = { navController.navigate(Destinations.BACKUP) }
+                onBackupClick = { navController.navigate(Destinations.BACKUP) },
+                onAutofillClick = { navController.navigate(Destinations.AUTOFILL) }
             )
         }
         composable(
@@ -45,6 +47,9 @@ fun PasswordMemoryNavHost(modifier: Modifier = Modifier) {
         }
         composable(Destinations.BACKUP) {
             BackupScreen(onBack = navController::popBackStack)
+        }
+        composable(Destinations.AUTOFILL) {
+            AutofillSettingsScreen(onBack = navController::popBackStack)
         }
     }
 }

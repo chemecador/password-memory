@@ -23,6 +23,34 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Authenticates and decrypts the entry the user picked from the autofill dropdown. It is
+            launched over the app being filled, so it stays out of the recents list and handles
+            configuration changes itself rather than restarting mid-prompt.
+        -->
+        <activity
+            android:name=".autofill.AutofillUnlockActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:taskAffinity=""
+            android:theme="@style/Theme.PasswordMemory" />
+
+        <service
+            android:name=".autofill.PasswordMemoryAutofillService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_AUTOFILL_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.autofill.AutofillService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.autofill"
+                android:resource="@xml/autofill_service" />
+        </service>
     </application>
 
 </manifest>

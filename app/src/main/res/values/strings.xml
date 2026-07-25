@@ -100,6 +100,24 @@
     <string name="backup_wrong_passphrase">Wrong passphrase, or the file is not a valid backup.</string>
     <string name="backup_failed">The operation could not be completed.</string>
 
+    <!-- Autofill -->
+    <string name="autofill_title">Autofill</string>
+    <string name="autofill_enabled">Password Memory is your autofill service</string>
+    <string name="autofill_enabled_detail">Android will ask this app to fill your logins, and to save the passwords you type.</string>
+    <string name="autofill_disabled">Autofill is off</string>
+    <string name="autofill_disabled_detail">Another service, usually Google, is filling and saving your passwords.</string>
+    <string name="autofill_enable">Set as autofill service</string>
+    <string name="autofill_settings">Autofill settings</string>
+    <string name="autofill_unsupported">This device does not offer an autofill service.</string>
+    <string name="autofill_how">Once it is on: tap a username or password field and your entries show up over the keyboard. When you type a new password anywhere, the \"Save password\" prompt is this app\'s, and the entry lands here encrypted.</string>
+    <string name="autofill_privacy">Nothing leaves the device. Suggestions are built here, and no password is filled until you unlock with your biometrics or device PIN.</string>
+    <string name="autofill_pick">Choose another entry</string>
+    <string name="autofill_pick_title">Choose an entry</string>
+    <string name="autofill_pick_empty">There are no entries that can be filled. Hashed passwords cannot be recovered, so they are not offered here.</string>
+    <string name="autofill_unlock_subtitle">Unlock to fill this password</string>
+    <string name="autofill_save_failed">The password could not be saved.</string>
+    <string name="autofill_unknown_service">Unknown site</string>
+
     <!-- Import from Google / Chrome -->
     <string name="csv_import">Import from Google or Chrome</string>
     <string name="csv_import_description">Bring in passwords exported as a CSV file.</string>

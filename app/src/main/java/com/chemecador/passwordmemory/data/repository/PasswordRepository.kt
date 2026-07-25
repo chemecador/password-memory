@@ -46,6 +46,9 @@ class PasswordRepository @Inject constructor(
 
     suspend fun getEntry(id: Long): PasswordEntry? = dao.getById(id)?.toDomain()
 
+    /** One-shot snapshot, for callers that cannot collect a flow (the autofill service). */
+    suspend fun getEntries(): List<PasswordEntry> = dao.getAll().map(PasswordEntryEntity::toDomain)
+
     /** Creates an entry whose password can be decrypted later. */
     suspend fun createEncrypted(draft: EntryDraft, password: String): Long {
         val payload = cryptoManager.encrypt(password)
@@ -93,6 +96,40 @@ class PasswordRepository @Inject constructor(
             updated = updated.copy(cipherText = payload.cipherText, iv = payload.iv)
         }
         dao.update(updated)
+    }
+
+    /**
+     * Stores a credential the autofill service caught being typed somewhere else. If an encrypted
+     * entry for the same service and username is already here, its password is replaced instead of
+     * piling up a second copy; [origin] is the site or app it came from, kept in the hint so the
+     * entry can be recognised the next time that form shows up.
+     */
+    suspend fun saveCaptured(
+        serviceName: String,
+        username: String?,
+        password: String,
+        origin: String?
+    ): Long {
+        val key = EntryKey.of(serviceName, username)
+        val existing = dao.getAll().firstOrNull {
+            it.mode == ProtectionMode.ENCRYPTED && EntryKey.of(it.serviceName, it.username) == key
+        }
+        if (existing == null) {
+            return createEncrypted(
+                EntryDraft(serviceName = serviceName, username = username, hint = origin),
+                password
+            )
+        }
+        val payload = cryptoManager.encrypt(password)
+        dao.update(
+            existing.copy(
+                cipherText = payload.cipherText,
+                iv = payload.iv,
+                hint = existing.hint ?: origin,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        return existing.id
     }
 
     suspend fun setFavorite(id: Long, isFavorite: Boolean) {
