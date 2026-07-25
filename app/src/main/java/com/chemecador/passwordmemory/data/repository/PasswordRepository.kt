@@ -6,14 +6,31 @@ import com.chemecador.passwordmemory.data.db.PasswordEntryEntity
 import com.chemecador.passwordmemory.data.importer.EntryKey
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
+import com.chemecador.passwordmemory.security.AuthenticationRequiredException
 import com.chemecador.passwordmemory.security.CryptoManager
 import com.chemecador.passwordmemory.security.EncryptedPayload
 import com.chemecador.passwordmemory.security.HashedPassword
 import com.chemecador.passwordmemory.security.PasswordHasher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.security.GeneralSecurityException
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** What came of trying to read back an encrypted password. */
+sealed interface RevealResult {
+
+    data class Success(val password: String) : RevealResult
+
+    /** The Keystore window has closed. Authenticate and ask again; nothing is lost. */
+    data object AuthenticationRequired : RevealResult
+
+    /**
+     * The entry is hashed or missing, or the Keystore key is gone (e.g. after a reinstall), in
+     * which case only a backup can bring the password back.
+     */
+    data object Unavailable : RevealResult
+}
 
 /** Editable fields of an entry. The password is passed separately and never round-trips. */
 data class EntryDraft(
@@ -138,20 +155,57 @@ class PasswordRepository @Inject constructor(
 
     suspend fun delete(id: Long) = dao.deleteById(id)
 
+    /** Decrypts the password of an [ProtectionMode.ENCRYPTED] entry. */
+    suspend fun revealPassword(id: Long): RevealResult {
+        val entity = dao.getById(id) ?: return RevealResult.Unavailable
+        if (entity.mode != ProtectionMode.ENCRYPTED) return RevealResult.Unavailable
+        val cipherText = entity.cipherText ?: return RevealResult.Unavailable
+        val iv = entity.iv ?: return RevealResult.Unavailable
+        return try {
+            RevealResult.Success(
+                cryptoManager.decrypt(EncryptedPayload(cipherText = cipherText, iv = iv))
+            )
+        } catch (_: AuthenticationRequiredException) {
+            RevealResult.AuthenticationRequired
+        } catch (_: GeneralSecurityException) {
+            RevealResult.Unavailable
+        }
+    }
+
     /**
-     * Decrypts the password of an [ProtectionMode.ENCRYPTED] entry.
+     * Moves every encrypted entry onto the current Keystore key and drops the superseded one.
      *
-     * @return null if the entry is hashed, missing, or the Keystore key is gone (e.g. after a
-     * reinstall), in which case only a backup can restore it.
+     * Runs after an unlock, so the key is inside its authentication window. Interrupting it is
+     * harmless: decryption falls back to the old key, and whatever is left is picked up next time.
+     *
+     * @return true when nothing is on the old key any more.
      */
-    suspend fun revealPassword(id: Long): String? {
-        val entity = dao.getById(id) ?: return null
-        if (entity.mode != ProtectionMode.ENCRYPTED) return null
-        val cipherText = entity.cipherText ?: return null
-        val iv = entity.iv ?: return null
-        return runCatching {
-            cryptoManager.decrypt(EncryptedPayload(cipherText = cipherText, iv = iv))
-        }.getOrNull()
+    suspend fun rotateEncryptionKey(): Boolean {
+        if (!cryptoManager.hasLegacyKey()) return true
+        var complete = true
+        dao.getAll()
+            .filter { it.mode == ProtectionMode.ENCRYPTED }
+            .forEach { entity ->
+                val cipherText = entity.cipherText
+                val iv = entity.iv
+                if (cipherText == null || iv == null) return@forEach
+                val plain = try {
+                    cryptoManager.decrypt(EncryptedPayload(cipherText = cipherText, iv = iv))
+                } catch (authRequired: AuthenticationRequiredException) {
+                    // Out of window: stop rather than churn through every entry failing. What has
+                    // already moved stays moved, and the rest goes on the next unlock.
+                    throw authRequired
+                } catch (_: GeneralSecurityException) {
+                    // Unreadable with either key: the old key is keeping no secrets for this one.
+                    complete = false
+                    return@forEach
+                }
+                val payload = cryptoManager.encrypt(plain)
+                // updatedAt is untouched: re-encrypting is not an edit the user made.
+                dao.update(entity.copy(cipherText = payload.cipherText, iv = payload.iv))
+            }
+        if (complete) cryptoManager.discardLegacyKey()
+        return complete
     }
 
     /**
@@ -169,15 +223,23 @@ class PasswordRepository @Inject constructor(
     /**
      * Snapshot of every entry for a backup. Encrypted entries are decrypted here, since the
      * Keystore key cannot be exported; entries whose key is no longer available are skipped.
+     *
+     * A closed authentication window is *not* one of those cases and throws
+     * [AuthenticationRequiredException]: silently writing a backup that is missing entries is how
+     * someone finds out their safety net had holes only when they need it.
      */
     suspend fun exportEntries(): List<BackupEntry> = dao.getAll().mapNotNull { entity ->
         when (entity.mode) {
             ProtectionMode.ENCRYPTED -> {
                 val cipherText = entity.cipherText ?: return@mapNotNull null
                 val iv = entity.iv ?: return@mapNotNull null
-                val plain = runCatching {
+                val plain = try {
                     cryptoManager.decrypt(EncryptedPayload(cipherText = cipherText, iv = iv))
-                }.getOrNull() ?: return@mapNotNull null
+                } catch (authRequired: AuthenticationRequiredException) {
+                    throw authRequired
+                } catch (_: GeneralSecurityException) {
+                    return@mapNotNull null
+                }
                 entity.toBackupEntry(plainPassword = plain)
             }
 

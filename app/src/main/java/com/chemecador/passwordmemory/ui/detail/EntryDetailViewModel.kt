@@ -4,7 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chemecador.passwordmemory.data.repository.PasswordRepository
+import com.chemecador.passwordmemory.data.repository.RevealResult
+import com.chemecador.passwordmemory.data.settings.SettingsRepository
+import com.chemecador.passwordmemory.domain.model.ClipboardClearDelay
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
+import com.chemecador.passwordmemory.ui.common.SecureClipboard
 import com.chemecador.passwordmemory.ui.navigation.Destinations
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,14 +25,20 @@ data class EntryDetailUiState(
     /** Decrypted password, or the guess the user just got right. Never persisted. */
     val revealedPassword: String? = null,
     val revealFailed: Boolean = false,
+    /** The Keystore window closed: the screen is expected to prompt and let the reveal retry. */
+    val needsAuthentication: Boolean = false,
     val guess: String = "",
     val guessResult: GuessResult = GuessResult.NONE,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    /** Drives the wording of the "copied" confirmation. */
+    val clipboardClear: ClipboardClearDelay = ClipboardClearDelay.DEFAULT
 )
 
 @HiltViewModel
 class EntryDetailViewModel @Inject constructor(
     private val repository: PasswordRepository,
+    private val clipboard: SecureClipboard,
+    settings: SettingsRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -43,15 +53,50 @@ class EntryDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(entry = entry) }
             }
         }
+        viewModelScope.launch {
+            settings.settings.collect { current ->
+                _uiState.update { it.copy(clipboardClear = current.clipboardClear) }
+            }
+        }
+    }
+
+    /** Copies the password on screen; [SecureClipboard] takes care of wiping it afterwards. */
+    fun onCopyClick() {
+        val state = _uiState.value
+        val entry = state.entry ?: return
+        val password = state.revealedPassword ?: return
+        clipboard.copy(entry.serviceName, password)
     }
 
     fun onRevealClick() {
         viewModelScope.launch {
-            val password = repository.revealPassword(entryId)
-            _uiState.update {
-                it.copy(revealedPassword = password, revealFailed = password == null)
+            when (val result = repository.revealPassword(entryId)) {
+                is RevealResult.Success -> _uiState.update {
+                    it.copy(
+                        revealedPassword = result.password,
+                        revealFailed = false,
+                        needsAuthentication = false
+                    )
+                }
+
+                RevealResult.AuthenticationRequired ->
+                    _uiState.update { it.copy(needsAuthentication = true) }
+
+                RevealResult.Unavailable -> _uiState.update {
+                    it.copy(
+                        revealedPassword = null,
+                        revealFailed = true,
+                        needsAuthentication = false
+                    )
+                }
             }
         }
+    }
+
+    /** Answer to the prompt a closed Keystore window asked for. */
+    fun onAuthenticationResult(granted: Boolean) {
+        _uiState.update { it.copy(needsAuthentication = false) }
+        if (granted) onRevealClick()
     }
 
     /** Drops the plaintext from memory as soon as the user is done with it. */

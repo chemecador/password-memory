@@ -2,12 +2,15 @@ package com.chemecador.passwordmemory.data.repository
 
 import com.chemecador.passwordmemory.data.importer.EntryKey
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
+import com.chemecador.passwordmemory.security.AuthenticationRequiredException
 import com.chemecador.passwordmemory.security.PasswordHasher
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.security.SecureRandom
@@ -40,7 +43,7 @@ class PasswordRepositoryTest {
     fun `an encrypted entry can be revealed`() = runTest {
         val id = repository.createEncrypted(draft, "s3cr3t")
 
-        assertEquals("s3cr3t", repository.revealPassword(id))
+        assertEquals("s3cr3t", repository.revealed(id))
     }
 
     @Test
@@ -56,7 +59,7 @@ class PasswordRepositoryTest {
     fun `a hashed entry cannot be revealed, only guessed`() = runTest {
         val id = repository.createHashed(draft, "s3cr3t")
 
-        assertNull(repository.revealPassword(id))
+        assertNull(repository.revealed(id))
         assertTrue(repository.verifyGuess(id, "s3cr3t"))
         assertFalse(repository.verifyGuess(id, "wrong"))
     }
@@ -85,7 +88,7 @@ class PasswordRepositoryTest {
 
         repository.update(id, draft.copy(serviceName = "Gmail work"), newPassword = "new")
 
-        assertEquals("new", repository.revealPassword(id))
+        assertEquals("new", repository.revealed(id))
         assertEquals("Gmail work", repository.getEntry(id)!!.serviceName)
     }
 
@@ -95,7 +98,7 @@ class PasswordRepositoryTest {
 
         repository.update(id, draft.copy(category = "Work"), newPassword = null)
 
-        assertEquals("old", repository.revealPassword(id))
+        assertEquals("old", repository.revealed(id))
         assertEquals("Work", repository.getEntry(id)!!.category)
     }
 
@@ -122,7 +125,7 @@ class PasswordRepositoryTest {
             val entry = repository.getEntry(id)!!
             assertEquals(ProtectionMode.ENCRYPTED, entry.mode)
             assertEquals("https://github.com", entry.hint)
-            assertEquals("s3cr3t", repository.revealPassword(id))
+            assertEquals("s3cr3t", repository.revealed(id))
         }
 
     @Test
@@ -132,7 +135,7 @@ class PasswordRepositoryTest {
         val second = repository.saveCaptured("GitHub.com", "someone@example.com", "new", null)
 
         assertEquals(first, second)
-        assertEquals("new", repository.revealPassword(first))
+        assertEquals("new", repository.revealed(first))
         assertEquals(1, repository.getEntries().size)
     }
 
@@ -146,7 +149,7 @@ class PasswordRepositoryTest {
         val captured = repository.saveCaptured("Bank", "me", "s3cr3t", null)
 
         assertTrue(repository.verifyGuess(hashed, "original"))
-        assertEquals("s3cr3t", repository.revealPassword(captured))
+        assertEquals("s3cr3t", repository.revealed(captured))
     }
 
     @Test
@@ -227,8 +230,68 @@ class PasswordRepositoryTest {
         val id = repository.createEncrypted(draft, "s3cr3t")
         crypto.simulateLostKey()
 
-        assertNull(repository.revealPassword(id))
+        assertEquals(RevealResult.Unavailable, repository.revealPassword(id))
     }
+
+    @Test
+    fun `a closed authentication window is told apart from a lost key`() = runTest {
+        val id = repository.createEncrypted(draft, "s3cr3t")
+        crypto.simulateClosedAuthWindow()
+
+        assertEquals(RevealResult.AuthenticationRequired, repository.revealPassword(id))
+    }
+
+    @Test
+    fun `export refuses to write a backup that would be missing entries`() = runTest {
+        repository.createEncrypted(draft, "s3cr3t")
+        crypto.simulateClosedAuthWindow()
+
+        assertThrows(AuthenticationRequiredException::class.java) {
+            runBlocking { repository.exportEntries() }
+        }
+    }
+
+    @Test
+    fun `rotation re-encrypts every entry and drops the old key`() = runTest {
+        repository.createEncrypted(draft, "s3cr3t")
+        repository.createEncrypted(draft.copy(serviceName = "Bank"), "other")
+        repository.createHashed(draft.copy(serviceName = "Wifi"), "irrelevant")
+        crypto.simulateLegacyKey()
+        val before = crypto.encryptions
+
+        assertTrue(repository.rotateEncryptionKey())
+
+        // Only the two encrypted entries are touched; the hashed one has no key to move.
+        assertEquals(2, crypto.encryptions - before)
+        assertTrue(crypto.legacyKeyDiscarded)
+        assertEquals("s3cr3t", repository.revealed(1))
+    }
+
+    @Test
+    fun `rotation without an old key does nothing at all`() = runTest {
+        repository.createEncrypted(draft, "s3cr3t")
+        val before = crypto.encryptions
+
+        assertTrue(repository.rotateEncryptionKey())
+
+        assertEquals(before, crypto.encryptions)
+        assertFalse(crypto.legacyKeyDiscarded)
+    }
+
+    @Test
+    fun `rotation keeps the old key when an entry cannot be moved`() = runTest {
+        repository.createEncrypted(draft, "s3cr3t")
+        crypto.simulateLegacyKey()
+        crypto.simulateLostKey()
+
+        assertFalse(repository.rotateEncryptionKey())
+
+        assertFalse(crypto.legacyKeyDiscarded)
+    }
+
+    /** The reveal of a decryptable entry, or null for every other outcome. */
+    private suspend fun PasswordRepository.revealed(id: Long): String? =
+        (revealPassword(id) as? RevealResult.Success)?.password
 
     @Test
     fun `import restores both modes`() = runTest {
@@ -243,7 +306,7 @@ class PasswordRepositoryTest {
         assertEquals(2, restored)
         val entries = repository.observeEntries().first()
         val encrypted = entries.single { it.mode == ProtectionMode.ENCRYPTED }
-        assertEquals("s3cr3t", repository.revealPassword(encrypted.id))
+        assertEquals("s3cr3t", repository.revealed(encrypted.id))
         val hashed = entries.single { it.mode == ProtectionMode.HASHED }
         assertTrue(repository.verifyGuess(hashed.id, "other"))
     }

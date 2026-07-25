@@ -1,5 +1,6 @@
 package com.chemecador.passwordmemory.autofill
 
+import android.os.Build
 import android.os.CancellationSignal
 import android.service.autofill.AutofillService
 import android.service.autofill.Dataset
@@ -36,6 +37,9 @@ class PasswordMemoryAutofillService : AutofillService() {
     @Inject
     lateinit var repository: PasswordRepository
 
+    @Inject
+    lateinit var pendingCapture: PendingCapture
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onDestroy() {
@@ -69,13 +73,30 @@ class PasswordMemoryAutofillService : AutofillService() {
             return
         }
         val (username, password) = credential
+        val capture = Capture(
+            serviceName = serviceNameFor(form),
+            username = username,
+            password = password,
+            origin = Sites.originOf(form)
+        )
+
+        // Storing it encrypts it, and the Keystore key wants an authentication a service cannot ask
+        // for. Park the credential and let AutofillUnlockActivity prompt and commit it.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            pendingCapture.put(capture)
+            callback.onSuccess(AutofillUnlockActivity.saveIntentSender(this))
+            return
+        }
+
+        // Before API 28 the save callback cannot hand back an activity to launch, so this only
+        // works while the key is still inside its window — right after the user used the app.
         scope.launch {
             val saved = runCatching {
                 repository.saveCaptured(
-                    serviceName = serviceNameFor(form),
-                    username = username,
-                    password = password,
-                    origin = Sites.originOf(form)
+                    serviceName = capture.serviceName,
+                    username = capture.username,
+                    password = capture.password,
+                    origin = capture.origin
                 )
             }
             if (saved.isSuccess) {

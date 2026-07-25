@@ -57,6 +57,7 @@ import com.chemecador.passwordmemory.domain.model.ProtectionMode
 import com.chemecador.passwordmemory.ui.common.SectionCard
 import com.chemecador.passwordmemory.ui.common.icon
 import com.chemecador.passwordmemory.ui.common.labelRes
+import com.chemecador.passwordmemory.ui.lock.LocalCryptoGate
 
 private val FieldShape = RoundedCornerShape(16.dp)
 
@@ -72,6 +73,13 @@ fun EditEntryScreen(
 
     LaunchedEffect(state.isSaved) {
         if (state.isSaved) onDone()
+    }
+
+    // Saving encrypts, and filling in this form takes longer than the Keystore window lasts. Ask
+    // for authentication and finish the save rather than dropping what was typed.
+    val cryptoGate = LocalCryptoGate.current
+    LaunchedEffect(state.needsAuthentication) {
+        if (state.needsAuthentication) cryptoGate.authorize(viewModel::onAuthenticationResult)
     }
 
     Scaffold(

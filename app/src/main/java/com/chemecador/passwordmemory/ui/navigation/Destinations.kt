@@ -6,6 +6,7 @@ object Destinations {
     const val LIST = "list"
     const val BACKUP = "backup"
     const val AUTOFILL = "autofill"
+    const val SETTINGS = "settings"
     const val DETAIL = "detail/{$ARG_ENTRY_ID}"
     const val EDIT = "edit/{$ARG_ENTRY_ID}"
 

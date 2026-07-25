@@ -1,15 +1,22 @@
 package com.chemecador.passwordmemory.ui.lock
 
 import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.fragment.app.FragmentActivity
 import androidx.core.content.ContextCompat
 
-/** Biometric with fallback to the device PIN/pattern/password. There is no master password. */
-const val ALLOWED_AUTHENTICATORS = BIOMETRIC_WEAK or DEVICE_CREDENTIAL
+/**
+ * Biometric with fallback to the device PIN/pattern/password. There is no master password.
+ *
+ * It has to be `BIOMETRIC_STRONG`: the Keystore key entries are encrypted with only becomes usable
+ * after an authentication the keyguard trusts, and a weak biometric is not one. On a device whose
+ * only biometric is weak this means the user gets the PIN screen instead — the unlock still works,
+ * it just cannot be a face scan the platform does not vouch for.
+ */
+const val ALLOWED_AUTHENTICATORS = BIOMETRIC_STRONG or DEVICE_CREDENTIAL
 
 /**
  * Lets a screen warn the app lock that it is about to hand control to another app, typically the

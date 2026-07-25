@@ -51,7 +51,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -59,12 +58,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chemecador.passwordmemory.R
+import com.chemecador.passwordmemory.domain.model.ClipboardClearDelay
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
 import com.chemecador.passwordmemory.ui.common.ModeBadge
 import com.chemecador.passwordmemory.ui.common.SectionCard
 import com.chemecador.passwordmemory.ui.common.ServiceAvatar
-import com.chemecador.passwordmemory.ui.common.copySensitiveToClipboard
+import com.chemecador.passwordmemory.ui.lock.LocalCryptoGate
+import com.chemecador.passwordmemory.ui.settings.labelRes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,15 +77,29 @@ fun EntryDetailScreen(
     viewModel: EntryDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
     val entry = state.entry
-    val copiedMessage = stringResource(R.string.detail_copied)
+    // Copying starts a countdown, so the confirmation says how long the password will be there.
+    val copiedMessage = if (state.clipboardClear == ClipboardClearDelay.NEVER) {
+        stringResource(R.string.detail_copied)
+    } else {
+        stringResource(
+            R.string.detail_copied_clearing,
+            stringResource(state.clipboardClear.labelRes())
+        )
+    }
 
     LaunchedEffect(state.isDeleted) {
         if (state.isDeleted) onBack()
+    }
+
+    // Showing a password needs a recent authentication. Rather than reporting a failure the user
+    // cannot act on, ask for it and pick the reveal back up.
+    val cryptoGate = LocalCryptoGate.current
+    LaunchedEffect(state.needsAuthentication) {
+        if (state.needsAuthentication) cryptoGate.authorize(viewModel::onAuthenticationResult)
     }
 
     Scaffold(
@@ -174,10 +189,8 @@ fun EntryDetailScreen(
                 AnimatedVisibility(visible = state.revealedPassword != null) {
                     Button(
                         onClick = {
-                            state.revealedPassword?.let { password ->
-                                context.copySensitiveToClipboard(entry.serviceName, password)
-                                scope.launch { snackbarHostState.showSnackbar(copiedMessage) }
-                            }
+                            viewModel.onCopyClick()
+                            scope.launch { snackbarHostState.showSnackbar(copiedMessage) }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = ButtonDefaults.ButtonWithIconContentPadding

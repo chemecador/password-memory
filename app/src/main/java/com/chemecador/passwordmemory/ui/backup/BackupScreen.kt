@@ -61,6 +61,7 @@ import com.chemecador.passwordmemory.R
 import com.chemecador.passwordmemory.data.backup.BackupManager
 import com.chemecador.passwordmemory.data.importer.CredentialImportManager
 import com.chemecador.passwordmemory.ui.lock.LocalAppLockSuppressor
+import com.chemecador.passwordmemory.ui.lock.LocalCryptoGate
 
 private enum class PendingAction { EXPORT, IMPORT }
 
@@ -107,11 +108,23 @@ fun BackupScreen(
     }
 
     val message = state.message
-    val messageText = message?.let { stringResource(it.textRes(), it.count()) }
+    val messageText = message?.takeUnless { it == BackupMessage.AuthenticationRequired }
+        ?.let { stringResource(it.textRes(), it.count()) }
     LaunchedEffect(message) {
         messageText?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.onMessageShown()
+        }
+    }
+
+    // Choosing a file takes longer than the Keystore key stays open, so an export or import can
+    // come back asking for authentication. Ask, and the work resumes where it stopped.
+    val cryptoGate = LocalCryptoGate.current
+    LaunchedEffect(message) {
+        if (message != BackupMessage.AuthenticationRequired) return@LaunchedEffect
+        viewModel.onMessageShown()
+        cryptoGate.authorize { granted ->
+            if (granted) viewModel.onAuthenticated() else viewModel.onAuthenticationDeclined()
         }
     }
 
@@ -463,6 +476,8 @@ private fun BackupMessage.textRes(): Int = when (this) {
     is BackupMessage.Imported -> R.string.backup_imported
     BackupMessage.WrongPassphrase -> R.string.backup_wrong_passphrase
     BackupMessage.Failed -> R.string.backup_failed
+    // Handled by prompting, never shown as a message.
+    BackupMessage.AuthenticationRequired -> R.string.backup_failed
     BackupMessage.CsvUnreadable -> R.string.csv_unreadable
     BackupMessage.CsvEmpty -> R.string.csv_empty
     BackupMessage.CsvSourceDeleted -> R.string.csv_source_deleted

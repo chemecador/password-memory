@@ -26,8 +26,15 @@ When creating an entry, the user chooses between two protection modes **per entr
 
 ## Security
 
-- **App lock**: opening the app requires authentication via `BiometricPrompt` (biometric with fallback to device PIN/pattern, `DEVICE_CREDENTIAL`). No separate master password.
-- **Encryption key**: AES-256 in Android Keystore. Known consequence: the key does not survive reinstalls or migrate between devices — hence the backup feature.
+- **App lock**: opening the app requires authentication via `BiometricPrompt` (biometric with fallback to device PIN/pattern, `DEVICE_CREDENTIAL`). No separate master password. The lock comes back after a configurable **auto-lock timeout** (immediate by default, up to 5 minutes): the app is locked on the way out when the timeout is immediate, and otherwise on the way back in once the time away has run out. The system file picker keeps its exemption, or the screen waiting for a result would be torn down.
+- **Screen capture**: `FLAG_SECURE` on `MainActivity` and `AutofillUnlockActivity`, so screenshots, screen recording and the recents thumbnail are all blocked. Not configurable.
+- **Encryption key**: AES-256 in Android Keystore, **bound to user authentication** with a 30-second window (`KeystoreCryptoManager.AUTH_WINDOW_SECONDS`). The biometric prompt is therefore a cryptographic gate, not just a screen in front of readable data. Consequences that shape the rest of the app:
+  - The keyguard only trusts a **strong** authentication, so `ALLOWED_AUTHENTICATORS` is `BIOMETRIC_STRONG or DEVICE_CREDENTIAL`. A device whose only biometric is weak falls back to the PIN.
+  - Any operation can fail with `AuthenticationRequiredException` once the window closes. That is never reported as a failure: `revealPassword` returns `RevealResult.AuthenticationRequired`, the backup/CSV flows park the work in `pendingRetry`, and the screen asks `LocalCryptoGate` to prompt before retrying. `exportEntries` deliberately throws rather than writing a backup with entries silently missing.
+  - The autofill **save** path cannot prompt from a service, so the credential is parked in `PendingCapture` (in memory, never an `Intent` extra) and `AutofillUnlockActivity` authenticates and commits it. Below API 28 the save callback cannot launch an activity, so saving only works while the window happens to be open.
+  - A timeout-based key is not invalidated by enrolling a new fingerprint, which is the behaviour we want: losing every entry over an added finger would be far worse.
+  - **Key rotation**: entries written by earlier versions used an unauthenticated key. `PasswordRepository.rotateEncryptionKey()` runs after each unlock, re-encrypts them and deletes the old alias once nothing needs it; `KeystoreCryptoManager.decrypt` falls back to the old key until then. Interrupting it is safe.
+  - Unchanged: the key does not survive reinstalls or migrate between devices — hence the backup feature.
 - **Backup export/import** (offline; user moves files as desired):
   - On export, a **one-time passphrase** (not saved) is requested to encrypt the file (key derived with PBKDF2, AES-GCM). This is necessary because the Keystore key is not exportable.
   - On import, the same passphrase is requested to decrypt and restore entries.
@@ -38,7 +45,10 @@ When creating an entry, the user chooses between two protection modes **per entr
   - Only encrypted entries are offered; a hashed password cannot be recovered, so there is nothing to fill with.
   - Entries do not store the site they belong to, so matching is by name: the meaningful labels of the domain or package (`github` out of `github.com`, `twitter` out of `com.twitter.android`) against the service name and any URL left in the hint. Generous on purpose — the user still picks the row, and a last "choose another entry" row opens the full list.
   - Saved credentials become encrypted entries named after the site (or the app), with the origin (`https://…` / `android://…`) kept in the hint so the same form is recognised next time. An existing encrypted entry with the same service and username has its password replaced instead of being duplicated.
-- **Clipboard**: when copying a password, use `ClipDescription.EXTRA_IS_SENSITIVE` so it doesn't appear in the clipboard preview.
+- **Clipboard**: every copy goes through `SecureClipboard`, which flags the clip with `ClipDescription.EXTRA_IS_SENSITIVE` so it doesn't appear in the clipboard preview, and then wipes it after a configurable delay (30 s by default, or never). The timer lives in the application process, so a copy outlives an app Android decides to kill — hence the sensitive flag as the backstop.
+  - Before wiping, the clip is checked against the **`ClipDescription` timestamp** recorded when it was written, never against its label. Anything that re-posts the clip rewrites the label — a clipboard manager, a keyboard, the emulator's bridge to the host — so a label check silently skips the wipe exactly when another tool is holding the password. This was a real bug, found on a device: the emulator relabels the clip `host clipboard` and the password survived indefinitely.
+  - Reading the description is not reading the clipboard, so no "pasted from your clipboard" toast is raised.
+- **Settings** live in plain `SharedPreferences` (`SettingsRepository`), keyed by duration in seconds so renaming an enum constant cannot orphan a user's choice. Nothing secret is stored there, and both the app lock and the autofill service need to read them synchronously.
 - `android:allowBackup="false"` in the manifest (only app-initiated backups, no system backup).
 - Never log passwords, hashes, salts, or cryptographic material.
 
@@ -50,6 +60,7 @@ When creating an entry, the user chooses between two protection modes **per entr
 - Add, edit, and delete entries. In a hashed entry, the password is not editable (only delete the entry and create a new one).
 - Detail screen: view/copy (encrypted) or guess form with unlimited attempts (hashed).
 - **Autofill**: fills logins in other apps and browsers and takes over the "save password" prompt. A screen in the overflow menu shows whether the app is the system autofill service and sends the user to the system picker.
+- **Settings** screen in the overflow menu: auto-lock timeout and clipboard clear delay, plus notes explaining what is fixed and cannot be turned off.
 
 ## Tech Stack
 
@@ -70,7 +81,8 @@ com.chemecador.passwordmemory
 │   ├── db          # Room: entities, DAOs, database
 │   ├── repository
 │   ├── backup      # export/import
-│   └── importer    # CSV from Google Password Manager / Chrome
+│   ├── importer    # CSV from Google Password Manager / Chrome
+│   └── settings    # user preferences (SharedPreferences)
 ├── domain          # models and use cases if valuable
 ├── security        # CryptoManager (Keystore/AES), Hasher (SHA-256+salt), generator
 ├── ui
@@ -79,6 +91,7 @@ com.chemecador.passwordmemory
 │   ├── edit        # create/edit entry
 │   ├── lock        # biometric lock screen
 │   ├── autofill    # autofill settings and the entry picker shown while filling
+│   ├── settings    # auto-lock and clipboard preferences
 │   └── theme
 └── di              # Hilt modules
 ```
@@ -91,4 +104,5 @@ UI in **English by default** (`values/strings.xml`) with **Spanish translation**
 
 - Commits and code in English; conversation with the user in Spanish.
 - Unit tests for security logic (hash, encrypt/decrypt, generator) and repository.
+- **Room**: `exportSchema = true`, schemas committed under `app/schemas`. Every schema change bumps `DATABASE_VERSION` and adds its `Migration` to `PasswordDatabase.MIGRATIONS`; there is no destructive fallback, and `PasswordDatabaseMigrationTest` (instrumented) validates the chain.
 - Do not add network dependencies or new permissions without discussing first.

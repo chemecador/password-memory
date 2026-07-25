@@ -1,6 +1,7 @@
 package com.chemecador.passwordmemory
 
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -16,11 +17,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.chemecador.passwordmemory.data.settings.SettingsRepository
+import com.chemecador.passwordmemory.domain.model.AutoLockTimeout
+import com.chemecador.passwordmemory.ui.common.blockScreenCapture
 import com.chemecador.passwordmemory.ui.lock.AppLockSuppressor
+import com.chemecador.passwordmemory.ui.lock.AppLockViewModel
+import com.chemecador.passwordmemory.ui.lock.CryptoGate
 import com.chemecador.passwordmemory.ui.lock.LocalAppLockSuppressor
+import com.chemecador.passwordmemory.ui.lock.LocalCryptoGate
 import com.chemecador.passwordmemory.ui.lock.LockResult
 import com.chemecador.passwordmemory.ui.lock.LockScreen
 import com.chemecador.passwordmemory.ui.lock.canAuthenticate
@@ -28,6 +36,7 @@ import com.chemecador.passwordmemory.ui.lock.promptUnlock
 import com.chemecador.passwordmemory.ui.navigation.PasswordMemoryNavHost
 import com.chemecador.passwordmemory.ui.theme.PasswordMemoryTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * [FragmentActivity] rather than `ComponentActivity` because `BiometricPrompt` needs a fragment
@@ -36,23 +45,31 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
+    @Inject
+    lateinit var settings: SettingsRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        blockScreenCapture()
         enableEdgeToEdge()
         setContent {
             PasswordMemoryTheme {
-                AppRoot(activity = this)
+                AppRoot(activity = this, settings = settings)
             }
         }
     }
 }
 
 /**
- * Nothing is rendered until the user authenticates, and the app locks itself again as soon as it
- * leaves the foreground.
+ * Nothing is rendered until the user authenticates, and the app locks itself again once it has been
+ * away from the foreground for longer than the user's auto-lock timeout.
  */
 @Composable
-private fun AppRoot(activity: FragmentActivity) {
+private fun AppRoot(
+    activity: FragmentActivity,
+    settings: SettingsRepository,
+    viewModel: AppLockViewModel = hiltViewModel()
+) {
     var unlocked by remember { mutableStateOf(false) }
     // Kept apart from [unlocked] so the lock screen stays composed on top while it plays its
     // unlock animation over the content that has already appeared underneath.
@@ -60,15 +77,23 @@ private fun AppRoot(activity: FragmentActivity) {
     var unavailable by remember { mutableStateOf(false) }
     var promptShown by remember { mutableStateOf(false) }
     var pickerPending by remember { mutableStateOf(false) }
+    // When the app went to the background, or null while it is in front. Monotonic, so changing the
+    // device clock cannot buy extra unlocked time.
+    var leftAt by remember { mutableStateOf<Long?>(null) }
     val title = stringResource(R.string.lock_prompt_title)
     val subtitle = stringResource(R.string.lock_prompt_subtitle)
+    val reauthSubtitle = stringResource(R.string.lock_reauth_subtitle)
     val lifecycleOwner = LocalLifecycleOwner.current
 
     fun authenticate() {
         promptShown = true
         activity.promptUnlock(title, subtitle) { result ->
             when (result) {
-                LockResult.Unlocked -> unlocked = true
+                LockResult.Unlocked -> {
+                    unlocked = true
+                    viewModel.onUnlocked()
+                }
+
                 LockResult.Unavailable -> unavailable = true
                 LockResult.Cancelled -> promptShown = false
             }
@@ -79,20 +104,37 @@ private fun AppRoot(activity: FragmentActivity) {
         unavailable = !activity.canAuthenticate()
     }
 
-    // Re-lock on background so a password left on screen is not visible in the recents list. The
-    // system file picker is the one exception: re-locking there would destroy the screen waiting
+    fun lock() {
+        unlocked = false
+        revealed = false
+        promptShown = false
+    }
+
+    // Re-lock after a trip to the background. With an immediate timeout that happens on the way out;
+    // with a longer one the app stays unlocked for a short errand — reading the code that was just
+    // texted, say — and locks on the way back in if the user took too long. Either way FLAG_SECURE
+    // keeps the recents thumbnail blank in the meantime.
+    //
+    // The system file picker is the one exception: re-locking there would destroy the screen waiting
     // for its result. The exemption is spent on the first stop, so a later trip to the background
     // locks the app as usual.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                if (pickerPending) {
-                    pickerPending = false
-                } else {
-                    unlocked = false
-                    revealed = false
-                    promptShown = false
+            when (event) {
+                Lifecycle.Event.ON_STOP -> when {
+                    pickerPending -> pickerPending = false
+                    settings.current().autoLock == AutoLockTimeout.IMMEDIATE -> lock()
+                    else -> leftAt = SystemClock.elapsedRealtime()
                 }
+
+                Lifecycle.Event.ON_START -> {
+                    val away = leftAt?.let { SystemClock.elapsedRealtime() - it }
+                    leftAt = null
+                    val timeout = settings.current().autoLock.duration.inWholeMilliseconds
+                    if (away != null && away >= timeout) lock()
+                }
+
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -106,7 +148,18 @@ private fun AppRoot(activity: FragmentActivity) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (unlocked) {
             val suppressor = remember { AppLockSuppressor { pickerPending = true } }
-            CompositionLocalProvider(LocalAppLockSuppressor provides suppressor) {
+            // Screens reach for this when the Keystore window has closed under them.
+            val cryptoGate = remember(reauthSubtitle) {
+                CryptoGate { onResult ->
+                    activity.promptUnlock(title, reauthSubtitle) { result ->
+                        onResult(result == LockResult.Unlocked)
+                    }
+                }
+            }
+            CompositionLocalProvider(
+                LocalAppLockSuppressor provides suppressor,
+                LocalCryptoGate provides cryptoGate
+            ) {
                 PasswordMemoryNavHost(modifier = Modifier.fillMaxSize())
             }
         }

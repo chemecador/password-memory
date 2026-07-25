@@ -8,6 +8,7 @@ import com.chemecador.passwordmemory.data.backup.BackupManager
 import com.chemecador.passwordmemory.data.importer.CredentialImportManager
 import com.chemecador.passwordmemory.data.importer.CredentialImportPreview
 import com.chemecador.passwordmemory.data.importer.CsvFormatException
+import com.chemecador.passwordmemory.security.AuthenticationRequiredException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,10 @@ sealed interface BackupMessage {
     data class Imported(val count: Int) : BackupMessage
     data object WrongPassphrase : BackupMessage
     data object Failed : BackupMessage
+
+    /** Not an error: the Keystore window closed, and the work is waiting for a fresh unlock. */
+    data object AuthenticationRequired : BackupMessage
+
     data object CsvUnreadable : BackupMessage
     data object CsvEmpty : BackupMessage
     data object CsvSourceDeleted : BackupMessage
@@ -53,6 +58,9 @@ class BackupViewModel @Inject constructor(
     /** Held between the preview and the confirmation, and dropped as soon as either ends. */
     private var pendingCsv: CredentialImportPreview? = null
     private var pendingSource: Uri? = null
+
+    /** Work that stopped for want of a fresh authentication. Never holds a passphrase of its own. */
+    private var pendingRetry: (suspend () -> BackupMessage?)? = null
 
     fun onExport(target: Uri, passphrase: String) = runWithPassphrase(passphrase) {
         BackupMessage.Exported(backupManager.export(target, passphrase.toCharArray()))
@@ -127,11 +135,29 @@ class BackupViewModel @Inject constructor(
         runBusy(block)
     }
 
+    /**
+     * Resumes the operation a closed Keystore window interrupted. Exporting decrypts every entry,
+     * and both imports encrypt what they store, so any of them can land out of window — the file
+     * picker alone takes longer than the key stays open.
+     */
+    fun onAuthenticated() {
+        val retry = pendingRetry ?: return
+        pendingRetry = null
+        runBusy(retry)
+    }
+
+    fun onAuthenticationDeclined() {
+        pendingRetry = null
+    }
+
     private fun runBusy(block: suspend () -> BackupMessage?) {
         _uiState.update { it.copy(isBusy = true) }
         viewModelScope.launch {
             val message = try {
                 block()
+            } catch (e: AuthenticationRequiredException) {
+                pendingRetry = block
+                BackupMessage.AuthenticationRequired
             } catch (e: BackupFormatException) {
                 BackupMessage.WrongPassphrase
             } catch (e: CsvFormatException) {

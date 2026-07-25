@@ -16,6 +16,7 @@
     <string name="lock_unlock">Desbloquear</string>
     <string name="lock_prompt_title">Desbloquear Password Memory</string>
     <string name="lock_prompt_subtitle">Usa tu biometría o el PIN del dispositivo</string>
+    <string name="lock_reauth_subtitle">Vuelve a identificarte para desbloquear la clave de cifrado</string>
 
     <!-- List -->
     <string name="list_search">Buscar por servicio</string>
@@ -72,6 +73,7 @@
     <string name="detail_hide">Ocultar</string>
     <string name="detail_copy">Copiar contraseña</string>
     <string name="detail_copied">Contraseña copiada</string>
+    <string name="detail_copied_clearing">Contraseña copiada. El portapapeles se borra en %1$s.</string>
     <string name="detail_reveal_failed">No se ha podido descifrar esta contraseña. Puede que la clave se perdiera tras una reinstalación: restaura una copia de seguridad para recuperarla.</string>
     <string name="detail_guess_explanation">Esta contraseña no se guarda: escríbela para comprobar si es la correcta. No hay límite de intentos.</string>
     <string name="detail_guess_label">Tu intento</string>
@@ -113,6 +115,7 @@
     <string name="autofill_pick_title">Elige una entrada</string>
     <string name="autofill_pick_empty">No hay entradas que se puedan rellenar. Las contraseñas hasheadas no se pueden recuperar, así que no se ofrecen aquí.</string>
     <string name="autofill_unlock_subtitle">Desbloquea para rellenar esta contraseña</string>
+    <string name="autofill_save_subtitle">Desbloquea para guardar esta contraseña</string>
     <string name="autofill_save_failed">No se ha podido guardar la contraseña.</string>
     <string name="autofill_unknown_service">Sitio desconocido</string>
 
@@ -141,4 +144,21 @@
     <string name="csv_delete_message">Tus contraseñas ya están guardadas a salvo. El CSV sigue teniéndolas en texto plano, así que lo prudente es borrarlo.</string>
     <string name="csv_source_deleted">Fichero CSV eliminado</string>
     <string name="csv_source_kept">Acuérdate de borrar el CSV: contiene tus contraseñas en texto plano.</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_autolock">Bloquear la app</string>
+    <string name="settings_autolock_description">Cuánto tiempo puede seguir abierta Password Memory después de cambiar a otra app.</string>
+    <string name="settings_autolock_immediate">En cuanto salga</string>
+    <string name="settings_clipboard">Borrar el portapapeles</string>
+    <string name="settings_clipboard_description">Una contraseña copiada se borra del portapapeles pasado este tiempo.</string>
+    <string name="settings_clipboard_never">Nunca</string>
+    <string name="settings_capture_note">Las capturas y la grabación de pantalla están bloqueadas en toda la app, y la vista previa de recientes se ve en blanco. Esto no se puede desactivar.</string>
+    <string name="settings_clipboard_note">El borrado ocurre mientras la app sigue viva. Si Android la cierra antes, la copia se queda: va marcada como sensible, así que nunca aparece en la vista previa del portapapeles.</string>
+
+    <!-- Duraciones -->
+    <string name="duration_seconds_30">30 segundos</string>
+    <string name="duration_minutes_1">1 minuto</string>
+    <string name="duration_minutes_2">2 minutos</string>
+    <string name="duration_minutes_5">5 minutos</string>
 </resources>

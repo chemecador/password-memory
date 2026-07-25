@@ -18,6 +18,7 @@
     <string name="lock_unlock">Unlock</string>
     <string name="lock_prompt_title">Unlock Password Memory</string>
     <string name="lock_prompt_subtitle">Use your biometrics or device PIN</string>
+    <string name="lock_reauth_subtitle">Authenticate again to unlock the encryption key</string>
 
     <!-- List -->
     <string name="list_search">Search by service</string>
@@ -74,6 +75,7 @@
     <string name="detail_hide">Hide</string>
     <string name="detail_copy">Copy password</string>
     <string name="detail_copied">Password copied</string>
+    <string name="detail_copied_clearing">Password copied. The clipboard clears in %1$s.</string>
     <string name="detail_reveal_failed">This password could not be decrypted. The key may have been lost after a reinstall: restore a backup to recover it.</string>
     <string name="detail_guess_explanation">This password is not stored: type it to check whether it is the right one. There is no limit on attempts.</string>
     <string name="detail_guess_label">Your guess</string>
@@ -115,6 +117,7 @@
     <string name="autofill_pick_title">Choose an entry</string>
     <string name="autofill_pick_empty">There are no entries that can be filled. Hashed passwords cannot be recovered, so they are not offered here.</string>
     <string name="autofill_unlock_subtitle">Unlock to fill this password</string>
+    <string name="autofill_save_subtitle">Unlock to save this password</string>
     <string name="autofill_save_failed">The password could not be saved.</string>
     <string name="autofill_unknown_service">Unknown site</string>
 
@@ -143,4 +146,21 @@
     <string name="csv_delete_message">Your passwords are safely stored now. The CSV still holds them in plain text, so deleting it is the safe thing to do.</string>
     <string name="csv_source_deleted">CSV file deleted</string>
     <string name="csv_source_kept">Remember to delete the CSV: it holds your passwords in plain text.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_autolock">Lock the app</string>
+    <string name="settings_autolock_description">How long Password Memory may stay open after you switch to another app.</string>
+    <string name="settings_autolock_immediate">As soon as I leave</string>
+    <string name="settings_clipboard">Clear the clipboard</string>
+    <string name="settings_clipboard_description">A copied password is wiped from the clipboard after this long.</string>
+    <string name="settings_clipboard_never">Never</string>
+    <string name="settings_capture_note">Screenshots and screen recording are blocked throughout the app, and the recents preview stays blank. That cannot be turned off.</string>
+    <string name="settings_clipboard_note">The wipe happens while the app is still running. If Android closes it first, the copy is left behind — it is flagged as sensitive, so it never shows in the clipboard preview.</string>
+
+    <!-- Durations -->
+    <string name="duration_seconds_30">30 seconds</string>
+    <string name="duration_minutes_1">1 minute</string>
+    <string name="duration_minutes_2">2 minutes</string>
+    <string name="duration_minutes_5">5 minutes</string>
 </resources>

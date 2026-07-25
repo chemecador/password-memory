@@ -3,6 +3,7 @@ package com.chemecador.passwordmemory.autofill
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
@@ -13,14 +14,17 @@ import android.view.autofill.AutofillValue
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.StringRes
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.chemecador.passwordmemory.R
 import com.chemecador.passwordmemory.data.repository.PasswordRepository
+import com.chemecador.passwordmemory.data.repository.RevealResult
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
 import com.chemecador.passwordmemory.ui.autofill.EntryPickerScreen
 import com.chemecador.passwordmemory.ui.autofill.UnlockingScreen
+import com.chemecador.passwordmemory.ui.common.blockScreenCapture
 import com.chemecador.passwordmemory.ui.lock.LockResult
 import com.chemecador.passwordmemory.ui.lock.promptUnlock
 import com.chemecador.passwordmemory.ui.theme.PasswordMemoryTheme
@@ -39,34 +43,90 @@ class AutofillUnlockActivity : FragmentActivity() {
     @Inject
     lateinit var repository: PasswordRepository
 
+    @Inject
+    lateinit var pendingCapture: PendingCapture
+
     private var target: FillTarget? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        blockScreenCapture()
+        enableEdgeToEdge()
+        setContent { PasswordMemoryTheme { UnlockingScreen() } }
+
+        if (intent.getBooleanExtra(EXTRA_SAVE, false)) {
+            unlock(
+                subtitle = R.string.autofill_save_subtitle,
+                onUnlocked = ::store,
+                // Turned down: drop the credential rather than leave a password parked in memory.
+                onDenied = { pendingCapture.take() }
+            )
+            return
+        }
         val parsed = FillTarget.from(intent)
         if (parsed == null) {
             finish()
             return
         }
         target = parsed
-        enableEdgeToEdge()
-        setContent { PasswordMemoryTheme { UnlockingScreen() } }
-        unlock(parsed.entryId)
+        unlock(
+            subtitle = R.string.autofill_unlock_subtitle,
+            onUnlocked = { parsed.entryId?.let(::fill) ?: showPicker() }
+        )
     }
 
-    private fun unlock(entryId: Long?) {
+    private fun unlock(
+        @StringRes subtitle: Int,
+        onUnlocked: () -> Unit,
+        onDenied: () -> Unit = {}
+    ) {
         promptUnlock(
             title = getString(R.string.lock_prompt_title),
-            subtitle = getString(R.string.autofill_unlock_subtitle)
+            subtitle = getString(subtitle)
         ) { result ->
             when (result) {
-                LockResult.Unlocked -> if (entryId != null) fill(entryId) else showPicker()
-                LockResult.Cancelled -> finish()
+                LockResult.Unlocked -> onUnlocked()
+                LockResult.Cancelled -> {
+                    onDenied()
+                    finish()
+                }
+
                 LockResult.Unavailable -> {
+                    onDenied()
                     Toast.makeText(this, R.string.lock_unavailable, Toast.LENGTH_LONG).show()
                     finish()
                 }
             }
+        }
+    }
+
+    /**
+     * Encrypts and stores the credential the service parked, now that the Keystore key is inside
+     * its authentication window. There is nothing to hand back: the system considered the save done
+     * the moment it launched this activity.
+     */
+    private fun store() {
+        val capture = pendingCapture.take() ?: run {
+            finish()
+            return
+        }
+        lifecycleScope.launch {
+            val saved = runCatching {
+                repository.saveCaptured(
+                    serviceName = capture.serviceName,
+                    username = capture.username,
+                    password = capture.password,
+                    origin = capture.origin
+                )
+            }
+            if (saved.isFailure) {
+                Toast.makeText(
+                    this@AutofillUnlockActivity,
+                    R.string.autofill_save_failed,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            finish()
         }
     }
 
@@ -85,8 +145,10 @@ class AutofillUnlockActivity : FragmentActivity() {
         }
         lifecycleScope.launch {
             val entry = repository.getEntry(entryId)
-            val password = entry?.let { repository.revealPassword(it.id) }
-            if (entry == null || password == null) {
+            val reveal = entry?.let { repository.revealPassword(it.id) }
+            // The prompt was a moment ago, so the window should be open; if the platform disagrees
+            // there is nothing left to try, and pretending otherwise would loop the user forever.
+            if (entry == null || reveal !is RevealResult.Success) {
                 Toast.makeText(
                     this@AutofillUnlockActivity,
                     R.string.detail_reveal_failed,
@@ -97,7 +159,7 @@ class AutofillUnlockActivity : FragmentActivity() {
             }
             val result = Intent().putExtra(
                 AutofillManager.EXTRA_AUTHENTICATION_RESULT,
-                dataset(fields, entry, password)
+                dataset(fields, entry, reveal.password)
             )
             setResult(RESULT_OK, result)
             finish()
@@ -118,10 +180,28 @@ class AutofillUnlockActivity : FragmentActivity() {
 
     companion object {
 
+        private const val EXTRA_SAVE = "save"
         private const val EXTRA_ENTRY_ID = "entry_id"
         private const val EXTRA_USERNAME_ID = "username_id"
         private const val EXTRA_PASSWORD_IDS = "password_ids"
         private const val NO_ENTRY = 0L
+
+        /**
+         * What the save callback hands back to the system so this activity gets to run. The
+         * credential itself waits in [PendingCapture]; only the instruction to go and store it
+         * travels here.
+         */
+        fun saveIntentSender(context: Context): IntentSender {
+            val intent = Intent(context, AutofillUnlockActivity::class.java)
+                .setData("password-memory://autofill/save".toUri())
+                .putExtra(EXTRA_SAVE, true)
+            return PendingIntent.getActivity(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            ).intentSender
+        }
 
         /**
          * The [PendingIntent] a dataset authenticates with. It has to be mutable, because the system

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.chemecador.passwordmemory.data.repository.EntryDraft
 import com.chemecador.passwordmemory.data.repository.PasswordRepository
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
+import com.chemecador.passwordmemory.security.AuthenticationRequiredException
 import com.chemecador.passwordmemory.security.PasswordGenerator
 import com.chemecador.passwordmemory.security.PasswordGeneratorOptions
 import com.chemecador.passwordmemory.ui.navigation.Destinations
@@ -29,7 +30,9 @@ data class EditEntryUiState(
     val categories: List<String> = emptyList(),
     val generatorOptions: PasswordGeneratorOptions = PasswordGeneratorOptions(),
     val isGeneratorVisible: Boolean = false,
-    val isSaved: Boolean = false
+    val isSaved: Boolean = false,
+    /** The Keystore window closed mid-form: the screen prompts and the save resumes. */
+    val needsAuthentication: Boolean = false
 ) {
     val isEditing: Boolean get() = entryId != null
 
@@ -120,20 +123,32 @@ class EditEntryViewModel @Inject constructor(
             isFavorite = state.isFavorite
         )
         viewModelScope.launch {
-            val id = state.entryId
-            if (id == null) {
-                when (state.mode) {
-                    ProtectionMode.ENCRYPTED -> repository.createEncrypted(draft, state.password)
-                    ProtectionMode.HASHED -> repository.createHashed(draft, state.password)
+            try {
+                val id = state.entryId
+                if (id == null) {
+                    when (state.mode) {
+                        ProtectionMode.ENCRYPTED -> repository.createEncrypted(draft, state.password)
+                        ProtectionMode.HASHED -> repository.createHashed(draft, state.password)
+                    }
+                } else {
+                    repository.update(
+                        id = id,
+                        draft = draft,
+                        newPassword = state.password.takeIf { it.isNotEmpty() }
+                    )
                 }
-            } else {
-                repository.update(
-                    id = id,
-                    draft = draft,
-                    newPassword = state.password.takeIf { it.isNotEmpty() }
-                )
+                _uiState.update { it.copy(isSaved = true) }
+            } catch (_: AuthenticationRequiredException) {
+                // Storing a password encrypts it, and filling in this form easily takes longer than
+                // the Keystore window lasts. Ask again instead of losing what the user typed.
+                _uiState.update { it.copy(needsAuthentication = true) }
             }
-            _uiState.update { it.copy(isSaved = true) }
         }
+    }
+
+    /** Answer to the prompt a closed Keystore window asked for; the save picks up where it left. */
+    fun onAuthenticationResult(granted: Boolean) {
+        _uiState.update { it.copy(needsAuthentication = false) }
+        if (granted) onSaveClick()
     }
 }
