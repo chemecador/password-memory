@@ -25,9 +25,19 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
+*.p12
+*.pfx
+*.pepk
+keystore.properties
+
+# Release artifacts are reproducible and may be signed; keep them out of source control.
+*.aab
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
 
 # Android Profiling
 *.hprof
+
+# Intermediate screenshot captures; Play-ready screenshots are exported as JPEG.
+play-store/assets/screenshots/*.png

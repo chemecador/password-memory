@@ -1,9 +1,29 @@
+import java.lang.reflect.InvocationTargetException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+val releaseSigningPropertiesFile = rootProject.layout.projectDirectory.file("keystore.properties")
+val releaseSigningPropertiesText = providers
+    .fileContents(releaseSigningPropertiesFile)
+    .asText
+    .orNull
+val releaseSigningProperties = Properties().apply {
+    if (releaseSigningPropertiesText != null) {
+        releaseSigningPropertiesText.reader().use(::load)
+    }
+}
+
+fun requiredReleaseSigningProperty(name: String): String =
+    releaseSigningProperties.getProperty(name)?.takeIf(String::isNotBlank)
+        ?: error("Missing '$name' in ${releaseSigningPropertiesFile.asFile.path}")
 
 android {
     namespace = "com.chemecador.passwordmemory"
@@ -32,10 +52,22 @@ android {
         assets.directories.add("$projectDir/schemas")
     }
 
+    signingConfigs {
+        if (releaseSigningPropertiesText != null) {
+            create("release") {
+                storeFile = rootProject.file(requiredReleaseSigningProperty("storeFile"))
+                storePassword = requiredReleaseSigningProperty("storePassword")
+                keyAlias = requiredReleaseSigningProperty("keyAlias")
+                keyPassword = requiredReleaseSigningProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             optimization {
-                enable = false
+                enable = true
             }
         }
     }
@@ -92,4 +124,49 @@ dependencies {
     androidTestImplementation(libs.androidx.room.testing)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+}
+
+// AGP already uses bundletool to produce App Bundles. This verification task deliberately reuses
+// that exact plugin classpath instead of adding another build dependency or committing a binary.
+// The release script disables the configuration cache and daemon before invoking it because the
+// same project configuration may also load upload-key credentials.
+val bundleToValidate = providers.gradleProperty("passwordMemory.bundleToValidate")
+tasks.register("validatePlayBundle") {
+    group = "verification"
+    description = "Semantically validates an Android App Bundle with AGP's bundletool."
+    mustRunAfter("bundleRelease")
+    notCompatibleWithConfigurationCache("Invokes AGP's bundled bundletool reflectively.")
+
+    doLast {
+        val configuredPath = bundleToValidate.orNull
+            ?: error("Pass -PpasswordMemory.bundleToValidate=<absolute-aab-path>.")
+        val bundlePath = Path.of(configuredPath).toAbsolutePath().normalize()
+        check(Files.isRegularFile(bundlePath)) {
+            "Bundle to validate does not exist: $bundlePath"
+        }
+
+        val classLoader = Thread.currentThread().contextClassLoader
+        val commandType = classLoader.loadClass(
+            "com.android.tools.build.bundletool.commands.ValidateBundleCommand"
+        )
+        val builderType = classLoader.loadClass(
+            "com.android.tools.build.bundletool.commands.ValidateBundleCommand\$Builder"
+        )
+        val builder = commandType.getMethod("builder").invoke(null)
+        builderType.getMethod("setBundlePath", Path::class.java).invoke(builder, bundlePath)
+        builderType.getMethod(
+            "setPrintOutput",
+            Boolean::class.javaPrimitiveType!!
+        ).invoke(builder, false)
+        val command = builderType.getMethod("build").invoke(builder)
+
+        try {
+            commandType.getMethod("execute").invoke(command)
+        } catch (exception: InvocationTargetException) {
+            throw GradleException(
+                "bundletool rejected $bundlePath",
+                exception.targetException ?: exception
+            )
+        }
+    }
 }
