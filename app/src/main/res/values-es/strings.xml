@@ -31,6 +31,7 @@
     <string name="list_empty_filtered">Ninguna entrada coincide con estos filtros.</string>
     <plurals name="list_count">
         <item quantity="one">%1$d entrada</item>
+        <item quantity="many">%1$d entradas</item>
         <item quantity="other">%1$d entradas</item>
     </plurals>
 
@@ -95,8 +96,16 @@
     <string name="backup_passphrase">Contraseña de la copia</string>
     <string name="backup_passphrase_export_help">Elige una contraseña para cifrar el fichero. La necesitarás para importarlo más adelante.</string>
     <string name="backup_passphrase_import_help">Escribe la contraseña que usaste al exportar la copia.</string>
-    <string name="backup_exported">%1$d entradas exportadas</string>
-    <string name="backup_imported">%1$d entradas importadas</string>
+    <plurals name="backup_exported">
+        <item quantity="one">%1$d entrada exportada</item>
+        <item quantity="many">%1$d entradas exportadas</item>
+        <item quantity="other">%1$d entradas exportadas</item>
+    </plurals>
+    <plurals name="backup_imported">
+        <item quantity="one">%1$d entrada importada</item>
+        <item quantity="many">%1$d entradas importadas</item>
+        <item quantity="other">%1$d entradas importadas</item>
+    </plurals>
     <string name="backup_wrong_passphrase">Contraseña incorrecta o el fichero no es una copia válida.</string>
     <string name="backup_failed">No se ha podido completar la operación.</string>
 
@@ -110,7 +119,7 @@
     <string name="autofill_settings">Ajustes de autocompletar</string>
     <string name="autofill_unsupported">Este dispositivo no ofrece servicio de autocompletar.</string>
     <string name="autofill_how">Cuando esté activado: toca un campo de usuario o de contraseña y tus entradas aparecerán sobre el teclado. Y al escribir una contraseña nueva en cualquier sitio, el aviso de «Guardar contraseña» será el de esta app, y la entrada se guardará aquí cifrada.</string>
-    <string name="autofill_privacy">Nada sale del dispositivo. Las sugerencias se preparan aquí y ninguna contraseña se rellena hasta que desbloqueas con tu biometría o el PIN del dispositivo.</string>
+    <string name="autofill_privacy">Password Memory prepara las sugerencias en local y no las envía por red. La contraseña solo se entrega a la app de destino después de desbloquear; esa app controla cómo la utiliza después.</string>
     <string name="autofill_pick">Elegir otra entrada</string>
     <string name="autofill_pick_title">Elige una entrada</string>
     <string name="autofill_pick_empty">No hay entradas que se puedan rellenar. Las contraseñas hasheadas no se pueden recuperar, así que no se ofrecen aquí.</string>
@@ -128,14 +137,17 @@
     <string name="csv_preview_title">Listo para importar</string>
     <plurals name="csv_preview_new">
         <item quantity="one">Se añadirá %1$d entrada nueva.</item>
+        <item quantity="many">Se añadirán %1$d entradas nuevas.</item>
         <item quantity="other">Se añadirán %1$d entradas nuevas.</item>
     </plurals>
     <plurals name="csv_preview_duplicates">
         <item quantity="one">Importar también %1$d entrada que ya tienes</item>
+        <item quantity="many">Importar también %1$d entradas que ya tienes</item>
         <item quantity="other">Importar también %1$d entradas que ya tienes</item>
     </plurals>
     <plurals name="csv_preview_skipped">
         <item quantity="one">Se ha descartado %1$d fila: sin contraseña o sin servicio.</item>
+        <item quantity="many">Se han descartado %1$d filas: sin contraseña o sin servicio.</item>
         <item quantity="other">Se han descartado %1$d filas: sin contraseña o sin servicio.</item>
     </plurals>
     <string name="csv_empty">No se han encontrado credenciales en ese fichero.</string>

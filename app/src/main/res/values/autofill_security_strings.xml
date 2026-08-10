@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="autofill_security_confirm_title">Confirm autofill request</string>
+    <string name="autofill_security_confirm_explanation">Password Memory is completely offline, so it cannot verify that the claimed domain belongs to the requesting app. Continue only if you started this sign-in and recognize both identifiers.</string>
+    <string name="autofill_security_identifiers_title">Request identifiers</string>
+    <string name="autofill_security_picker_title">Check where the password will be filled</string>
+    <string name="autofill_security_picker_explanation">The association between these identifiers cannot be verified offline. Check both before choosing an entry.</string>
+    <string name="autofill_security_claimed_domain_label">Claimed domain</string>
+    <string name="autofill_security_requesting_package_label">Requesting app package</string>
+    <string name="autofill_security_missing_value">Not provided</string>
+    <string name="autofill_security_domain_value">Claimed domain: %1$s</string>
+    <string name="autofill_security_package_value">Requesting package: %1$s</string>
+    <string name="autofill_security_continue">Continue and unlock</string>
+    <string name="autofill_security_cancel">Cancel autofill</string>
+    <string name="autofill_security_save_description">Security warning: claimed domain %1$s; requesting package %2$s. Password Memory cannot verify their association offline. Save only if you recognize both.</string>
+</resources>

@@ -124,7 +124,11 @@ class PasswordMemoryAutofillService : AutofillService() {
 
     private fun dataset(form: LoginForm, entry: PasswordEntry): Dataset = dataset(
         form = form,
-        presentation = datasetPresentation(entry.serviceName, entry.username),
+        presentation = datasetPresentation(
+            title = entry.serviceName,
+            subtitle = entry.username,
+            requestOrigin = form.requestOrigin()
+        ),
         entryId = entry.id
     )
 
@@ -133,7 +137,8 @@ class PasswordMemoryAutofillService : AutofillService() {
         form = form,
         presentation = datasetPresentation(
             title = getString(R.string.app_name),
-            subtitle = getString(R.string.autofill_pick)
+            subtitle = getString(R.string.autofill_pick),
+            requestOrigin = form.requestOrigin()
         ),
         entryId = null
     )
@@ -158,11 +163,22 @@ class PasswordMemoryAutofillService : AutofillService() {
      * for once every field of the form is gone; without it, logging in on a browser would often
      * save nothing.
      */
-    private fun saveInfo(form: LoginForm): SaveInfo =
-        SaveInfo.Builder(SaveInfo.SAVE_DATA_TYPE_PASSWORD, form.passwordIds.toTypedArray())
+    @Suppress("DEPRECATION") // Still the compatible SaveInfo warning API from minSdk 26 onward.
+    private fun saveInfo(form: LoginForm): SaveInfo {
+        val origin = form.requestOrigin()
+        val missingValue = getString(R.string.autofill_security_missing_value)
+        return SaveInfo.Builder(SaveInfo.SAVE_DATA_TYPE_PASSWORD, form.passwordIds.toTypedArray())
             .setFlags(SaveInfo.FLAG_SAVE_ON_ALL_VIEWS_INVISIBLE)
+            .setDescription(
+                getString(
+                    R.string.autofill_security_save_description,
+                    origin.claimedWebDomain ?: missingValue,
+                    origin.requestingPackage ?: missingValue
+                )
+            )
             .apply { form.usernameId?.let { setOptionalIds(arrayOf(it)) } }
             .build()
+    }
 
     /** What an entry captured from this form is called: the site, or the app it was typed into. */
     private fun serviceNameFor(form: LoginForm): String {

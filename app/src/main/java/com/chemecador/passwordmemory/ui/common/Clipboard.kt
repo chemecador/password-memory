@@ -1,5 +1,6 @@
 package com.chemecador.passwordmemory.ui.common
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
@@ -85,6 +86,7 @@ class SecureClipboard @Inject constructor(
      * Flagged as sensitive so the system preview (Android 13+) shows a placeholder instead of the
      * password itself.
      */
+    @SuppressLint("InlinedApi")
     private fun sensitiveClip(label: String, value: String): ClipData =
         ClipData.newPlainText(label, value).apply {
             description.extras = PersistableBundle().apply {

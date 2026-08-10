@@ -7,6 +7,7 @@ object Destinations {
     const val BACKUP = "backup"
     const val AUTOFILL = "autofill"
     const val SETTINGS = "settings"
+    const val PRIVACY = "privacy"
     const val DETAIL = "detail/{$ARG_ENTRY_ID}"
     const val EDIT = "edit/{$ARG_ENTRY_ID}"
 

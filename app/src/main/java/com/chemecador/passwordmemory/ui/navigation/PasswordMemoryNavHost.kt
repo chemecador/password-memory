@@ -12,6 +12,7 @@ import com.chemecador.passwordmemory.ui.backup.BackupScreen
 import com.chemecador.passwordmemory.ui.detail.EntryDetailScreen
 import com.chemecador.passwordmemory.ui.edit.EditEntryScreen
 import com.chemecador.passwordmemory.ui.list.EntryListScreen
+import com.chemecador.passwordmemory.ui.privacy.PrivacyPolicyScreen
 import com.chemecador.passwordmemory.ui.settings.SettingsScreen
 
 @Composable
@@ -29,7 +30,8 @@ fun PasswordMemoryNavHost(modifier: Modifier = Modifier) {
                 onCreateClick = { navController.navigate(Destinations.edit()) },
                 onBackupClick = { navController.navigate(Destinations.BACKUP) },
                 onAutofillClick = { navController.navigate(Destinations.AUTOFILL) },
-                onSettingsClick = { navController.navigate(Destinations.SETTINGS) }
+                onSettingsClick = { navController.navigate(Destinations.SETTINGS) },
+                onPrivacyClick = { navController.navigate(Destinations.PRIVACY) }
             )
         }
         composable(
@@ -55,6 +57,9 @@ fun PasswordMemoryNavHost(modifier: Modifier = Modifier) {
         }
         composable(Destinations.SETTINGS) {
             SettingsScreen(onBack = navController::popBackStack)
+        }
+        composable(Destinations.PRIVACY) {
+            PrivacyPolicyScreen(onBack = navController::popBackStack)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.chemecador.passwordmemory.data.repository
 
+import com.chemecador.passwordmemory.data.backup.BackupEntry
 import com.chemecador.passwordmemory.data.importer.EntryKey
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
 import com.chemecador.passwordmemory.security.AuthenticationRequiredException
@@ -13,6 +14,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.security.GeneralSecurityException
 import java.security.SecureRandom
 
 class PasswordRepositoryTest {
@@ -215,14 +217,40 @@ class PasswordRepositoryTest {
     }
 
     @Test
-    fun `entries whose key is gone are skipped on export`() = runTest {
+    fun `export fails instead of skipping entries whose key is gone`() = runTest {
         repository.createEncrypted(draft, "s3cr3t")
         repository.createHashed(draft.copy(serviceName = "Bank"), "other")
         crypto.simulateLostKey()
 
-        val exported = repository.exportEntries()
+        assertThrows(GeneralSecurityException::class.java) {
+            runBlocking { repository.exportEntries() }
+        }
+    }
 
-        assertEquals(listOf(ProtectionMode.HASHED), exported.map { it.mode })
+    @Test
+    fun `export fails when an encrypted entry has incomplete cryptographic material`() = runTest {
+        val id = repository.createEncrypted(draft, "s3cr3t")
+        val valid = dao.getById(id)!!
+
+        listOf(valid.copy(cipherText = null), valid.copy(iv = null)).forEach { incomplete ->
+            dao.update(incomplete)
+            assertThrows(IllegalStateException::class.java) {
+                runBlocking { repository.exportEntries() }
+            }
+        }
+    }
+
+    @Test
+    fun `export fails when a hashed entry has incomplete cryptographic material`() = runTest {
+        val id = repository.createHashed(draft, "s3cr3t")
+        val valid = dao.getById(id)!!
+
+        listOf(valid.copy(hash = null), valid.copy(salt = null)).forEach { incomplete ->
+            dao.update(incomplete)
+            assertThrows(IllegalStateException::class.java) {
+                runBlocking { repository.exportEntries() }
+            }
+        }
     }
 
     @Test
@@ -309,5 +337,48 @@ class PasswordRepositoryTest {
         assertEquals("s3cr3t", repository.revealed(encrypted.id))
         val hashed = entries.single { it.mode == ProtectionMode.HASHED }
         assertTrue(repository.verifyGuess(hashed.id, "other"))
+    }
+
+    @Test
+    fun `import is atomic when an encrypted backup entry is malformed`() = runTest {
+        val valid = BackupEntry(
+            serviceName = "Mail",
+            username = "someone@example.com",
+            hint = null,
+            category = "Personal",
+            isFavorite = false,
+            mode = ProtectionMode.ENCRYPTED,
+            plainPassword = "correct horse battery staple",
+            createdAt = 1,
+            updatedAt = 1
+        )
+        val malformed = valid.copy(serviceName = "Broken", plainPassword = null)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { repository.importEntries(listOf(valid, malformed)) }
+        }
+        assertTrue(dao.getAll().isEmpty())
+    }
+
+    @Test
+    fun `import is atomic when hashed material has an invalid size`() = runTest {
+        val valid = BackupEntry(
+            serviceName = "Archive",
+            username = null,
+            hint = null,
+            category = null,
+            isFavorite = false,
+            mode = ProtectionMode.HASHED,
+            hash = ByteArray(32),
+            salt = ByteArray(16),
+            createdAt = 1,
+            updatedAt = 1
+        )
+        val malformed = valid.copy(serviceName = "Broken", hash = ByteArray(31))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { repository.importEntries(listOf(valid, malformed)) }
+        }
+        assertTrue(dao.getAll().isEmpty())
     }
 }

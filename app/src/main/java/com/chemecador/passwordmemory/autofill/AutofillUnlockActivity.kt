@@ -22,6 +22,7 @@ import com.chemecador.passwordmemory.R
 import com.chemecador.passwordmemory.data.repository.PasswordRepository
 import com.chemecador.passwordmemory.data.repository.RevealResult
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
+import com.chemecador.passwordmemory.ui.autofill.AutofillSecurityConfirmationScreen
 import com.chemecador.passwordmemory.ui.autofill.EntryPickerScreen
 import com.chemecador.passwordmemory.ui.autofill.UnlockingScreen
 import com.chemecador.passwordmemory.ui.common.blockScreenCapture
@@ -52,9 +53,9 @@ class AutofillUnlockActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         blockScreenCapture()
         enableEdgeToEdge()
-        setContent { PasswordMemoryTheme { UnlockingScreen() } }
 
         if (intent.getBooleanExtra(EXTRA_SAVE, false)) {
+            showUnlocking()
             unlock(
                 subtitle = R.string.autofill_save_subtitle,
                 onUnlocked = ::store,
@@ -69,10 +70,31 @@ class AutofillUnlockActivity : FragmentActivity() {
             return
         }
         target = parsed
-        unlock(
-            subtitle = R.string.autofill_unlock_subtitle,
-            onUnlocked = { parsed.entryId?.let(::fill) ?: showPicker() }
-        )
+        showFillConfirmation(parsed)
+    }
+
+    private fun showFillConfirmation(fields: FillTarget) {
+        setContent {
+            PasswordMemoryTheme {
+                AutofillSecurityConfirmationScreen(
+                    requestOrigin = fields.requestOrigin,
+                    onConfirm = {
+                        showUnlocking()
+                        unlock(
+                            subtitle = R.string.autofill_unlock_subtitle,
+                            onUnlocked = {
+                                fields.entryId?.let(::fill) ?: showPicker()
+                            }
+                        )
+                    },
+                    onCancel = ::finish
+                )
+            }
+        }
+    }
+
+    private fun showUnlocking() {
+        setContent { PasswordMemoryTheme { UnlockingScreen() } }
     }
 
     private fun unlock(
@@ -131,9 +153,17 @@ class AutofillUnlockActivity : FragmentActivity() {
     }
 
     private fun showPicker() {
+        val fields = target ?: run {
+            finish()
+            return
+        }
         setContent {
             PasswordMemoryTheme {
-                EntryPickerScreen(onPick = { fill(it.id) }, onCancel = ::finish)
+                EntryPickerScreen(
+                    requestOrigin = fields.requestOrigin,
+                    onPick = { fill(it.id) },
+                    onCancel = ::finish
+                )
             }
         }
     }
@@ -168,7 +198,13 @@ class AutofillUnlockActivity : FragmentActivity() {
 
     @Suppress("DEPRECATION") // The `Presentations` overload needs API 33, this app starts at 26.
     private fun dataset(fields: FillTarget, entry: PasswordEntry, password: String): Dataset =
-        Dataset.Builder(datasetPresentation(entry.serviceName, entry.username)).apply {
+        Dataset.Builder(
+            datasetPresentation(
+                title = entry.serviceName,
+                subtitle = entry.username,
+                requestOrigin = fields.requestOrigin
+            )
+        ).apply {
             val usernameId = fields.usernameId
             val username = entry.username
             // An entry without a username must not wipe whatever the user already typed there.
@@ -184,6 +220,8 @@ class AutofillUnlockActivity : FragmentActivity() {
         private const val EXTRA_ENTRY_ID = "entry_id"
         private const val EXTRA_USERNAME_ID = "username_id"
         private const val EXTRA_PASSWORD_IDS = "password_ids"
+        private const val EXTRA_CLAIMED_WEB_DOMAIN = "claimed_web_domain"
+        private const val EXTRA_REQUESTING_PACKAGE = "requesting_package"
         private const val NO_ENTRY = 0L
 
         /**
@@ -209,11 +247,20 @@ class AutofillUnlockActivity : FragmentActivity() {
          * ignored when the framework decides whether two pending intents are the same one.
          */
         fun authentication(context: Context, form: LoginForm, entryId: Long?): PendingIntent {
+            val requestOrigin = form.requestOrigin()
             val intent = Intent(context, AutofillUnlockActivity::class.java)
                 .setData("password-memory://autofill/${entryId ?: "pick"}".toUri())
                 .putExtra(EXTRA_ENTRY_ID, entryId ?: NO_ENTRY)
                 .putParcelableArrayListExtra(EXTRA_PASSWORD_IDS, ArrayList(form.passwordIds))
-                .apply { form.usernameId?.let { putExtra(EXTRA_USERNAME_ID, it) } }
+                .apply {
+                    form.usernameId?.let { putExtra(EXTRA_USERNAME_ID, it) }
+                    requestOrigin.claimedWebDomain?.let {
+                        putExtra(EXTRA_CLAIMED_WEB_DOMAIN, it)
+                    }
+                    requestOrigin.requestingPackage?.let {
+                        putExtra(EXTRA_REQUESTING_PACKAGE, it)
+                    }
+                }
             return PendingIntent.getActivity(
                 context,
                 0,
@@ -227,7 +274,8 @@ class AutofillUnlockActivity : FragmentActivity() {
     private data class FillTarget(
         val entryId: Long?,
         val usernameId: AutofillId?,
-        val passwordIds: List<AutofillId>
+        val passwordIds: List<AutofillId>,
+        val requestOrigin: AutofillRequestOrigin
     ) {
         companion object {
             fun from(intent: Intent): FillTarget? {
@@ -238,7 +286,11 @@ class AutofillUnlockActivity : FragmentActivity() {
                 return FillTarget(
                     entryId = intent.getLongExtra(EXTRA_ENTRY_ID, NO_ENTRY).takeIf { it != NO_ENTRY },
                     usernameId = intent.parcelable(EXTRA_USERNAME_ID),
-                    passwordIds = passwordIds
+                    passwordIds = passwordIds,
+                    requestOrigin = AutofillRequestOrigin.from(
+                        claimedWebDomain = intent.getStringExtra(EXTRA_CLAIMED_WEB_DOMAIN),
+                        requestingPackage = intent.getStringExtra(EXTRA_REQUESTING_PACKAGE)
+                    )
                 )
             }
         }

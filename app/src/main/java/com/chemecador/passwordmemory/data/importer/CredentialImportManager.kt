@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import com.chemecador.passwordmemory.data.backup.BackupEntry
+import com.chemecador.passwordmemory.data.io.readBytesLimited
 import com.chemecador.passwordmemory.data.repository.PasswordRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +43,9 @@ class CredentialImportManager @Inject constructor(
 ) {
 
     suspend fun preview(source: Uri): CredentialImportPreview = withContext(Dispatchers.IO) {
-        val bytes = context.contentResolver.openInputStream(source)?.use { it.readBytes() }
+        val bytes = context.contentResolver.openInputStream(source)?.use {
+            it.readBytesLimited(MAX_CSV_IMPORT_BYTES)
+        }
             ?: throw IOException("Cannot read the selected file")
         val parsed = parser.parse(bytes)
 
@@ -72,6 +75,9 @@ class CredentialImportManager @Inject constructor(
     }
 
     companion object {
+        /** Hard ceiling for a plaintext CSV loaded in memory from a SAF provider. */
+        const val MAX_CSV_IMPORT_BYTES = 16 * 1024 * 1024
+
         /**
          * Deliberately wide: providers disagree on the type of a `.csv` (`text/csv`,
          * `text/comma-separated-values`, `application/vnd.ms-excel`…) and a filtered picker would

@@ -81,7 +81,7 @@ class CredentialCsvParser @Inject constructor() {
 
     private companion object {
         /** UTF-8 BOM: Chrome on Windows writes one, and it would corrupt the first header cell. */
-        const val BYTE_ORDER_MARK = "﻿"
+        const val BYTE_ORDER_MARK = "\uFEFF"
         val NAME_COLUMNS = setOf("name", "title", "display name")
         val URL_COLUMNS = setOf("url", "urls", "website", "login_uri", "web site")
         val USERNAME_COLUMNS = setOf("username", "user name", "login_username", "login", "email")

@@ -222,28 +222,33 @@ class PasswordRepository @Inject constructor(
 
     /**
      * Snapshot of every entry for a backup. Encrypted entries are decrypted here, since the
-     * Keystore key cannot be exported; entries whose key is no longer available are skipped.
+     * Keystore key cannot be exported.
      *
-     * A closed authentication window is *not* one of those cases and throws
-     * [AuthenticationRequiredException]: silently writing a backup that is missing entries is how
-     * someone finds out their safety net had holes only when they need it.
+     * This operation is all-or-nothing. Missing cryptographic fields and every decryption failure
+     * abort the snapshot, including [AuthenticationRequiredException]. Silently writing a backup
+     * that is missing entries is how someone finds out their safety net had holes only when they
+     * need it.
      */
-    suspend fun exportEntries(): List<BackupEntry> = dao.getAll().mapNotNull { entity ->
+    suspend fun exportEntries(): List<BackupEntry> = dao.getAll().map { entity ->
         when (entity.mode) {
             ProtectionMode.ENCRYPTED -> {
-                val cipherText = entity.cipherText ?: return@mapNotNull null
-                val iv = entity.iv ?: return@mapNotNull null
-                val plain = try {
-                    cryptoManager.decrypt(EncryptedPayload(cipherText = cipherText, iv = iv))
-                } catch (authRequired: AuthenticationRequiredException) {
-                    throw authRequired
-                } catch (_: GeneralSecurityException) {
-                    return@mapNotNull null
+                val cipherText = checkNotNull(entity.cipherText) {
+                    "Encrypted entry ${entity.id} has no ciphertext"
                 }
+                val iv = checkNotNull(entity.iv) {
+                    "Encrypted entry ${entity.id} has no IV"
+                }
+                val plain = cryptoManager.decrypt(
+                    EncryptedPayload(cipherText = cipherText, iv = iv)
+                )
                 entity.toBackupEntry(plainPassword = plain)
             }
 
-            ProtectionMode.HASHED -> entity.toBackupEntry()
+            ProtectionMode.HASHED -> {
+                checkNotNull(entity.hash) { "Hashed entry ${entity.id} has no hash" }
+                checkNotNull(entity.salt) { "Hashed entry ${entity.id} has no salt" }
+                entity.toBackupEntry()
+            }
         }
     }
 
@@ -251,9 +256,15 @@ class PasswordRepository @Inject constructor(
     suspend fun existingKeys(): Set<EntryKey> =
         dao.getAll().mapTo(mutableSetOf()) { EntryKey.of(it.serviceName, it.username) }
 
-    /** Restores backed up entries, re-encrypting the recoverable ones with this device's key. */
+    /**
+     * Restores backed up entries, re-encrypting the recoverable ones with this device's key.
+     *
+     * Every entry is validated and transformed before Room receives anything. A malformed record
+     * therefore aborts the whole import instead of quietly disappearing from the restored vault.
+     */
     suspend fun importEntries(entries: List<BackupEntry>): Int {
-        val restored = entries.mapNotNull { entry ->
+        val restored = entries.map { entry ->
+            require(entry.serviceName.isNotBlank()) { "Backup entry has no service name" }
             val base = PasswordEntryEntity(
                 serviceName = entry.serviceName,
                 username = entry.username,
@@ -265,20 +276,44 @@ class PasswordRepository @Inject constructor(
                 updatedAt = entry.updatedAt
             )
             when (entry.mode) {
-                ProtectionMode.ENCRYPTED -> entry.plainPassword?.let { plain ->
+                ProtectionMode.ENCRYPTED -> {
+                    val plain = requireNotNull(entry.plainPassword) {
+                        "Encrypted backup entry has no password"
+                    }
+                    require(entry.hash == null && entry.salt == null) {
+                        "Encrypted backup entry contains hashed material"
+                    }
                     val payload = cryptoManager.encrypt(plain)
                     base.copy(cipherText = payload.cipherText, iv = payload.iv)
                 }
 
                 ProtectionMode.HASHED -> {
-                    val hash = entry.hash
-                    val salt = entry.salt
-                    if (hash == null || salt == null) null else base.copy(hash = hash, salt = salt)
+                    require(entry.plainPassword == null) {
+                        "Hashed backup entry contains a plaintext password"
+                    }
+                    val hash = requireNotNull(entry.hash) {
+                        "Hashed backup entry has no hash"
+                    }
+                    val salt = requireNotNull(entry.salt) {
+                        "Hashed backup entry has no salt"
+                    }
+                    require(hash.size == SHA_256_HASH_SIZE_BYTES) {
+                        "Hashed backup entry has an invalid hash"
+                    }
+                    require(salt.size >= MIN_HASH_SALT_SIZE_BYTES) {
+                        "Hashed backup entry has an invalid salt"
+                    }
+                    base.copy(hash = hash, salt = salt)
                 }
             }
         }
         dao.insertAll(restored)
         return restored.size
+    }
+
+    private companion object {
+        const val SHA_256_HASH_SIZE_BYTES = 32
+        const val MIN_HASH_SALT_SIZE_BYTES = 16
     }
 }
 

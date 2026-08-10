@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="autofill_security_confirm_title">Confirmar autocompletado</string>
+    <string name="autofill_security_confirm_explanation">Password Memory funciona sin conexión y no puede comprobar que el dominio pertenezca a la app solicitante. Continúa solo si has iniciado este acceso y reconoces ambos identificadores.</string>
+    <string name="autofill_security_identifiers_title">Identificadores de la solicitud</string>
+    <string name="autofill_security_picker_title">Comprueba dónde se rellenará la contraseña</string>
+    <string name="autofill_security_picker_explanation">La asociación entre estos identificadores no se puede verificar sin conexión. Comprueba ambos antes de elegir una entrada.</string>
+    <string name="autofill_security_claimed_domain_label">Dominio declarado</string>
+    <string name="autofill_security_requesting_package_label">Paquete de la aplicación solicitante</string>
+    <string name="autofill_security_missing_value">No proporcionado</string>
+    <string name="autofill_security_domain_value">Dominio declarado: %1$s</string>
+    <string name="autofill_security_package_value">Paquete solicitante: %1$s</string>
+    <string name="autofill_security_continue">Continuar y desbloquear</string>
+    <string name="autofill_security_cancel">Cancelar autocompletado</string>
+    <string name="autofill_security_save_description">Aviso de seguridad: dominio declarado %1$s; paquete solicitante %2$s. Password Memory no puede verificar su asociación sin conexión. Guarda solo si reconoces ambos.</string>
+</resources>

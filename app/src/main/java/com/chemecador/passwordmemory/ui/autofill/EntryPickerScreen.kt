@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chemecador.passwordmemory.R
+import com.chemecador.passwordmemory.autofill.AutofillRequestOrigin
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
 import com.chemecador.passwordmemory.ui.common.AppMark
@@ -72,7 +73,8 @@ fun UnlockingScreen(modifier: Modifier = Modifier) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EntryPickerScreen(
+internal fun EntryPickerScreen(
+    requestOrigin: AutofillRequestOrigin,
     onPick: (PasswordEntry) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -98,48 +100,60 @@ fun EntryPickerScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize()
+                .fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TextField(
-                value = state.query,
-                onValueChange = viewModel::onQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .clip(CircleShape),
-                singleLine = true,
-                shape = CircleShape,
-                placeholder = { Text(stringResource(R.string.list_search)) },
-                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+            item(key = "request_origin") {
+                AutofillOriginDisclosureCard(
+                    requestOrigin = requestOrigin,
+                    title = R.string.autofill_security_picker_title,
+                    explanation = R.string.autofill_security_picker_explanation,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
-            )
-            if (entries.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.autofill_pick_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
+            }
+            item(key = "search") {
+                TextField(
+                    value = state.query,
+                    onValueChange = viewModel::onQueryChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp)
+                        .padding(horizontal = 16.dp)
+                        .clip(CircleShape),
+                    singleLine = true,
+                    shape = CircleShape,
+                    placeholder = { Text(stringResource(R.string.list_search)) },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
                 )
+            }
+            if (entries.isEmpty()) {
+                item(key = "empty") {
+                    Text(
+                        text = stringResource(R.string.autofill_pick_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp)
+                    )
+                }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(entries, key = { it.id }) { entry ->
-                        PickerRow(entry = entry, onClick = { onPick(entry) })
-                    }
+                items(entries, key = { it.id }) { entry ->
+                    PickerRow(
+                        entry = entry,
+                        onClick = { onPick(entry) },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
                 }
             }
         }
@@ -147,10 +161,14 @@ fun EntryPickerScreen(
 }
 
 @Composable
-private fun PickerRow(entry: PasswordEntry, onClick: () -> Unit) {
+private fun PickerRow(
+    entry: PasswordEntry,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),

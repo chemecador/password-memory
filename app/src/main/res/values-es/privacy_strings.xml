@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="privacy_title">Política de privacidad</string>
+    <string name="privacy_summary">Password Memory no tiene servidores del desarrollador, analítica, publicidad ni permiso de red. La caja fuerte permanece en el almacenamiento privado; solo tus acciones de copiar, rellenar, importar o exportar implican a otros componentes de Android.</string>
+    <string name="privacy_identity_title">A quién se aplica</string>
+    <string name="privacy_identity_body">Esta política se aplica a Password Memory, paquete com.chemecador.passwordmemory. La app está desarrollada y publicada por Chemecador (Alejandro Gata Gascón), España, y no tiene cuentas de usuario.</string>
+    <string name="privacy_data_title">Datos que trata la app</string>
+    <string name="privacy_data_body">La app trata los nombres de servicio, usuarios, contraseñas, pistas, categorías y favoritos que introduces. Autocompletar también trata el paquete de la app solicitante o el dominio web que esta declara, y las credenciales que decides rellenar o guardar. La app solo recibe el resultado correcto o fallido de la autenticación del sistema; nunca recibe ni guarda tus datos biométricos ni el PIN del dispositivo.</string>
+    <string name="privacy_local_title">Recopilación, cesión y transferencias</string>
+    <string name="privacy_local_body">El desarrollador no recopila tu caja fuerte y la app no la envía automáticamente. Los datos solo salen del almacenamiento privado cuando pides a Android que rellene otra app, copias un valor, importas un CSV o escribes una copia cifrada en una ubicación elegida. La app de destino, el servicio de portapapeles o teclado y el proveedor de documentos pueden tratar, conservar o sincronizar los datos conforme a sus propias políticas.</string>
+    <string name="privacy_system_title">Servicios del sistema Android</string>
+    <string name="privacy_system_body">Password Memory usa BiometricPrompt, Keystore, Autocompletar, el selector de archivos y el portapapeles de Android. Android, la app de destino y el proveedor de documentos que eliges tratan los datos necesarios para la acción solicitada; un proveedor puede sincronizar ficheros con la nube. Password Memory no tiene permiso de red, no copia los CSV importados a su almacenamiento privado ni crea copias de Android en la nube o entre dispositivos.</string>
+    <string name="privacy_security_title">Seguridad</string>
+    <string name="privacy_security_body">Las contraseñas recuperables se protegen con AES-256-GCM y una clave conservada por Android Keystore y condicionada a una autenticación fuerte del dispositivo. El respaldo por hardware depende del dispositivo. Las contraseñas irrecuperables solo se guardan como hashes SHA-256 con sal. Las capturas están bloqueadas, y las contraseñas copiadas se marcan como sensibles y pueden borrarse automáticamente. Las copias creadas por el usuario se cifran con la contraseña elegida al exportar.</string>
+    <string name="privacy_retention_title">Conservación y eliminación</string>
+    <string name="privacy_retention_body">Las entradas permanecen hasta que las eliminas, borras los datos de la app o desinstalas la app. Eliminar una entrada la borra de la base de datos local. Las copias y los CSV en texto plano están fuera de la app y permanecen hasta que los borras de su ubicación; tras importar un CSV, la app ofrece eliminar el original. El portapapeles sigue el retraso elegido en Ajustes. Como no existen cuentas ni servidores, no hay datos remotos de cuenta que eliminar.</string>
+    <string name="privacy_contact_title">Preguntas y cambios</string>
+    <string name="privacy_contact_body">Para cuestiones de privacidad, escribe a chemecador@gmail.com o abre una incidencia en github.com/chemecador/password-memory/issues. Todo cambio importante se reflejará en la app y en la política pública antes de publicar una versión que cambie el tratamiento de datos.</string>
+    <string name="privacy_updated">Última actualización: 26 de julio de 2026</string>
+</resources>

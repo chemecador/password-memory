@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Password Memory</string>
+    <string name="app_name" translatable="false">Password Memory</string>
 
     <!-- Actions -->
     <string name="action_back">Back</string>
@@ -97,8 +97,14 @@
     <string name="backup_passphrase">Passphrase</string>
     <string name="backup_passphrase_export_help">Choose a passphrase to encrypt the backup file. You will need it to import it later.</string>
     <string name="backup_passphrase_import_help">Enter the passphrase used when the backup was exported.</string>
-    <string name="backup_exported">%1$d entries exported</string>
-    <string name="backup_imported">%1$d entries imported</string>
+    <plurals name="backup_exported">
+        <item quantity="one">%1$d entry exported</item>
+        <item quantity="other">%1$d entries exported</item>
+    </plurals>
+    <plurals name="backup_imported">
+        <item quantity="one">%1$d entry imported</item>
+        <item quantity="other">%1$d entries imported</item>
+    </plurals>
     <string name="backup_wrong_passphrase">Wrong passphrase, or the file is not a valid backup.</string>
     <string name="backup_failed">The operation could not be completed.</string>
 
@@ -112,7 +118,7 @@
     <string name="autofill_settings">Autofill settings</string>
     <string name="autofill_unsupported">This device does not offer an autofill service.</string>
     <string name="autofill_how">Once it is on: tap a username or password field and your entries show up over the keyboard. When you type a new password anywhere, the \"Save password\" prompt is this app\'s, and the entry lands here encrypted.</string>
-    <string name="autofill_privacy">Nothing leaves the device. Suggestions are built here, and no password is filled until you unlock with your biometrics or device PIN.</string>
+    <string name="autofill_privacy">Password Memory builds suggestions locally and does not send them over the network. A password is released to the destination app only after you unlock; that app controls how it is used afterward.</string>
     <string name="autofill_pick">Choose another entry</string>
     <string name="autofill_pick_title">Choose an entry</string>
     <string name="autofill_pick_empty">There are no entries that can be filled. Hashed passwords cannot be recovered, so they are not offered here.</string>

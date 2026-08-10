@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DeleteForever
@@ -54,6 +55,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,6 +90,7 @@ fun BackupScreen(
     val lockSuppressor = LocalAppLockSuppressor.current
     var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
     var passphrase by remember { mutableStateOf("") }
+    var passphraseConfirmation by remember { mutableStateOf("") }
     var showCsvInstructions by remember { mutableStateOf(false) }
     var includeDuplicates by remember { mutableStateOf(false) }
 
@@ -96,12 +99,14 @@ fun BackupScreen(
     ) { uri ->
         uri?.let { viewModel.onExport(it, passphrase) }
         passphrase = ""
+        passphraseConfirmation = ""
     }
     val openLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let { viewModel.onImport(it, passphrase) }
         passphrase = ""
+        passphraseConfirmation = ""
     }
     val csvLauncher = rememberLauncherForActivityResult(OpenCredentialCsv()) { uri ->
         uri?.let(viewModel::onCsvSelected)
@@ -109,7 +114,7 @@ fun BackupScreen(
 
     val message = state.message
     val messageText = message?.takeUnless { it == BackupMessage.AuthenticationRequired }
-        ?.let { stringResource(it.textRes(), it.count()) }
+        ?.displayText()
     LaunchedEffect(message) {
         messageText?.let {
             snackbarHostState.showSnackbar(it)
@@ -190,10 +195,13 @@ fun BackupScreen(
         PassphraseDialog(
             action = action,
             passphrase = passphrase,
+            passphraseConfirmation = passphraseConfirmation,
             onPassphraseChange = { passphrase = it },
+            onPassphraseConfirmationChange = { passphraseConfirmation = it },
             onDismiss = {
                 pendingAction = null
                 passphrase = ""
+                passphraseConfirmation = ""
             },
             onConfirm = {
                 pendingAction = null
@@ -421,10 +429,26 @@ private fun Explanation() {
 private fun PassphraseDialog(
     action: PendingAction,
     passphrase: String,
+    passphraseConfirmation: String,
     onPassphraseChange: (String) -> Unit,
+    onPassphraseConfirmationChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val isExport = action == PendingAction.EXPORT
+    val passphraseTooShort = isExport &&
+        passphrase.isNotEmpty() &&
+        passphrase.length < BackupManager.MIN_EXPORT_PASSPHRASE_LENGTH
+    val confirmationMismatch = isExport &&
+        passphraseConfirmation.isNotEmpty() &&
+        passphrase != passphraseConfirmation
+    val canConfirm = if (isExport) {
+        passphrase.length >= BackupManager.MIN_EXPORT_PASSPHRASE_LENGTH &&
+            passphrase == passphraseConfirmation
+    } else {
+        passphrase.isNotEmpty()
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -456,12 +480,44 @@ private fun PassphraseDialog(
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                     visualTransformation = PasswordVisualTransformation(),
-                    label = { Text(stringResource(R.string.backup_passphrase)) }
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    isError = passphraseTooShort,
+                    label = { Text(stringResource(R.string.backup_passphrase)) },
+                    supportingText = if (isExport) {
+                        {
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.backup_passphrase_minimum,
+                                    BackupManager.MIN_EXPORT_PASSPHRASE_LENGTH,
+                                    BackupManager.MIN_EXPORT_PASSPHRASE_LENGTH
+                                )
+                            )
+                        }
+                    } else {
+                        null
+                    }
                 )
+                if (isExport) {
+                    OutlinedTextField(
+                        value = passphraseConfirmation,
+                        onValueChange = onPassphraseConfirmationChange,
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        isError = confirmationMismatch,
+                        label = { Text(stringResource(R.string.backup_passphrase_confirm)) },
+                        supportingText = if (confirmationMismatch) {
+                            { Text(stringResource(R.string.backup_passphrase_mismatch)) }
+                        } else {
+                            null
+                        }
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm, enabled = passphrase.isNotEmpty()) {
+            TextButton(onClick = onConfirm, enabled = canConfirm) {
                 Text(stringResource(R.string.action_continue))
             }
         },
@@ -471,21 +527,22 @@ private fun PassphraseDialog(
     )
 }
 
-private fun BackupMessage.textRes(): Int = when (this) {
-    is BackupMessage.Exported -> R.string.backup_exported
-    is BackupMessage.Imported -> R.string.backup_imported
-    BackupMessage.WrongPassphrase -> R.string.backup_wrong_passphrase
-    BackupMessage.Failed -> R.string.backup_failed
-    // Handled by prompting, never shown as a message.
-    BackupMessage.AuthenticationRequired -> R.string.backup_failed
-    BackupMessage.CsvUnreadable -> R.string.csv_unreadable
-    BackupMessage.CsvEmpty -> R.string.csv_empty
-    BackupMessage.CsvSourceDeleted -> R.string.csv_source_deleted
-    BackupMessage.CsvSourceKept -> R.string.csv_source_kept
-}
+@Composable
+private fun BackupMessage.displayText(): String = when (this) {
+    is BackupMessage.Exported -> {
+        pluralStringResource(R.plurals.backup_exported, count, count)
+    }
 
-private fun BackupMessage.count(): Int = when (this) {
-    is BackupMessage.Exported -> count
-    is BackupMessage.Imported -> count
-    else -> 0
+    is BackupMessage.Imported -> {
+        pluralStringResource(R.plurals.backup_imported, count, count)
+    }
+
+    BackupMessage.WrongPassphrase -> stringResource(R.string.backup_wrong_passphrase)
+    BackupMessage.Failed -> stringResource(R.string.backup_failed)
+    // Handled by prompting, never shown as a message.
+    BackupMessage.AuthenticationRequired -> stringResource(R.string.backup_failed)
+    BackupMessage.CsvUnreadable -> stringResource(R.string.csv_unreadable)
+    BackupMessage.CsvEmpty -> stringResource(R.string.csv_empty)
+    BackupMessage.CsvSourceDeleted -> stringResource(R.string.csv_source_deleted)
+    BackupMessage.CsvSourceKept -> stringResource(R.string.csv_source_kept)
 }

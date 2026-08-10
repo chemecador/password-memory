@@ -69,6 +69,7 @@ fun EntryListScreen(
     onBackupClick: () -> Unit,
     onAutofillClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onPrivacyClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EntryListViewModel = hiltViewModel()
 ) {
@@ -84,7 +85,8 @@ fun EntryListScreen(
                     OverflowMenu(
                         onBackupClick = onBackupClick,
                         onAutofillClick = onAutofillClick,
-                        onSettingsClick = onSettingsClick
+                        onSettingsClick = onSettingsClick,
+                        onPrivacyClick = onPrivacyClick
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -159,7 +161,8 @@ private fun Header(count: Int) {
 private fun OverflowMenu(
     onBackupClick: () -> Unit,
     onAutofillClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onPrivacyClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -186,6 +189,13 @@ private fun OverflowMenu(
                 onClick = {
                     expanded = false
                     onSettingsClick()
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.privacy_title)) },
+                onClick = {
+                    expanded = false
+                    onPrivacyClick()
                 }
             )
         }

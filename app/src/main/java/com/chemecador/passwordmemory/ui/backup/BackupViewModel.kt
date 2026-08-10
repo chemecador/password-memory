@@ -59,15 +59,18 @@ class BackupViewModel @Inject constructor(
     private var pendingCsv: CredentialImportPreview? = null
     private var pendingSource: Uri? = null
 
-    /** Work that stopped for want of a fresh authentication. Never holds a passphrase of its own. */
-    private var pendingRetry: (suspend () -> BackupMessage?)? = null
+    /**
+     * Work waiting for a fresh authentication. A backup retry retains its passphrase only as a
+     * mutable character array, which is wiped when the operation finishes or is abandoned.
+     */
+    private var pendingRetry: PendingRetry? = null
 
-    fun onExport(target: Uri, passphrase: String) = runWithPassphrase(passphrase) {
-        BackupMessage.Exported(backupManager.export(target, passphrase.toCharArray()))
+    fun onExport(target: Uri, passphrase: String) = runWithPassphrase(passphrase) { passphraseChars ->
+        BackupMessage.Exported(backupManager.export(target, passphraseChars))
     }
 
-    fun onImport(source: Uri, passphrase: String) = runWithPassphrase(passphrase) {
-        BackupMessage.Imported(backupManager.import(source, passphrase.toCharArray()))
+    fun onImport(source: Uri, passphrase: String) = runWithPassphrase(passphrase) { passphraseChars ->
+        BackupMessage.Imported(backupManager.import(source, passphraseChars))
     }
 
     /** Reads the CSV and reports what it would add; nothing is stored yet. */
@@ -130,9 +133,19 @@ class BackupViewModel @Inject constructor(
 
     fun onMessageShown() = _uiState.update { it.copy(message = null) }
 
-    private fun runWithPassphrase(passphrase: String, block: suspend () -> BackupMessage) {
-        if (passphrase.isEmpty()) return
-        runBusy(block)
+    private fun runWithPassphrase(
+        passphrase: String,
+        block: suspend (CharArray) -> BackupMessage
+    ) {
+        val passphraseChars = passphrase.toCharArray()
+        if (passphraseChars.isEmpty()) {
+            passphraseChars.fill('\u0000')
+            return
+        }
+        runBusy(
+            block = { block(passphraseChars) },
+            onTerminal = { passphraseChars.fill('\u0000') }
+        )
     }
 
     /**
@@ -143,20 +156,33 @@ class BackupViewModel @Inject constructor(
     fun onAuthenticated() {
         val retry = pendingRetry ?: return
         pendingRetry = null
-        runBusy(retry)
+        runBusy(onTerminal = retry.onTerminal, block = retry.block)
     }
 
     fun onAuthenticationDeclined() {
+        pendingRetry?.onTerminal?.invoke()
         pendingRetry = null
     }
 
-    private fun runBusy(block: suspend () -> BackupMessage?) {
+    override fun onCleared() {
+        pendingRetry?.onTerminal?.invoke()
+        pendingRetry = null
+        super.onCleared()
+    }
+
+    private fun runBusy(
+        onTerminal: () -> Unit = {},
+        block: suspend () -> BackupMessage?
+    ) {
         _uiState.update { it.copy(isBusy = true) }
         viewModelScope.launch {
+            var waitingForAuthentication = false
             val message = try {
                 block()
             } catch (e: AuthenticationRequiredException) {
-                pendingRetry = block
+                pendingRetry?.onTerminal?.invoke()
+                pendingRetry = PendingRetry(block, onTerminal)
+                waitingForAuthentication = true
                 BackupMessage.AuthenticationRequired
             } catch (e: BackupFormatException) {
                 BackupMessage.WrongPassphrase
@@ -164,8 +190,15 @@ class BackupViewModel @Inject constructor(
                 BackupMessage.CsvUnreadable
             } catch (e: Exception) {
                 BackupMessage.Failed
+            } finally {
+                if (!waitingForAuthentication) onTerminal()
             }
             _uiState.update { it.copy(isBusy = false, message = message ?: it.message) }
         }
     }
+
+    private data class PendingRetry(
+        val block: suspend () -> BackupMessage?,
+        val onTerminal: () -> Unit
+    )
 }

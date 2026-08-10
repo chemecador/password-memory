@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="privacy_title">Privacy policy</string>
+    <string name="privacy_summary">Password Memory has no developer servers, analytics, advertising or network permission. Your vault stays in private app storage; only your explicit copy, fill, import or export actions involve other Android components.</string>
+    <string name="privacy_identity_title">Who this policy covers</string>
+    <string name="privacy_identity_body">This policy applies to Password Memory, package com.chemecador.passwordmemory. The app is developed and published by Chemecador (Alejandro Gata Gascón), Spain, and has no user accounts.</string>
+    <string name="privacy_data_title">Data the app handles</string>
+    <string name="privacy_data_body">The app handles the service names, usernames, passwords, hints, categories and favorites that you enter. Autofill also handles the requesting app package or claimed website domain and credentials you choose to fill or save. The app receives only the success or failure of system authentication; it never receives or stores your biometric data or device PIN.</string>
+    <string name="privacy_local_title">Collection, sharing and transfers</string>
+    <string name="privacy_local_body">The developer does not collect your vault, and the app does not send it automatically. Data leaves private app storage only when you ask Android to fill another app, copy a value, import a selected CSV, or write an encrypted backup to a selected location. The destination app, clipboard or keyboard service, and document provider may process, retain or synchronize the data under their own policies.</string>
+    <string name="privacy_system_title">Android system services</string>
+    <string name="privacy_system_body">Password Memory uses Android BiometricPrompt, Keystore, Autofill, the system file picker and the clipboard. Android, the destination app and the document provider you select process the data needed for your requested action; a provider may synchronize files to the cloud. Password Memory has no network permission, does not copy imported CSV files into its private storage and does not create Android cloud or device-transfer backups.</string>
+    <string name="privacy_security_title">Security</string>
+    <string name="privacy_security_body">Recoverable passwords are protected with AES-256-GCM using a key held by Android Keystore and gated by strong device authentication. Hardware backing depends on the device. Irrecoverable passwords are stored only as salted SHA-256 hashes. Screen capture is blocked, and copied passwords are marked sensitive and can be cleared automatically. User-created backup files are encrypted with the passphrase chosen during export.</string>
+    <string name="privacy_retention_title">Retention and deletion</string>
+    <string name="privacy_retention_body">Vault entries remain until you delete them, clear the app data or uninstall the app. Deleting an entry removes it from the local database. Backup files and plaintext CSV files are outside the app and remain until you delete them from their chosen location; after a CSV import, the app offers to delete the source. Clipboard contents follow the clear delay selected in Settings. Because there are no accounts or servers, there is no remote account data to delete.</string>
+    <string name="privacy_contact_title">Questions and changes</string>
+    <string name="privacy_contact_body">For privacy questions, email chemecador@gmail.com or open an issue at github.com/chemecador/password-memory/issues. Material changes to this policy will be reflected in the app and in the public policy before a release that changes data handling.</string>
+    <string name="privacy_updated">Last updated: July 26, 2026</string>
+</resources>

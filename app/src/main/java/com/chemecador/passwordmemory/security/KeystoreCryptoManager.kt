@@ -83,12 +83,13 @@ class KeystoreCryptoManager @Inject constructor() : CryptoManager {
     private fun existingKey(alias: String): SecretKey? =
         (keyStore().getEntry(alias, null) as? KeyStore.SecretKeyEntry)?.secretKey
 
-    private fun getOrCreateKey(): SecretKey {
-        existingKey(KEY_ALIAS)?.let { return it }
-        val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
-        generator.init(keySpec())
-        return generator.generateKey()
-    }
+    private fun getOrCreateKey(): SecretKey =
+        existingKey(KEY_ALIAS) ?: synchronized(KEY_CREATION_LOCK) {
+            existingKey(KEY_ALIAS) ?: KeyGenerator
+                .getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
+                .apply { init(keySpec()) }
+                .generateKey()
+        }
 
     private fun keySpec(): KeyGenParameterSpec {
         val builder = KeyGenParameterSpec.Builder(
@@ -122,5 +123,6 @@ class KeystoreCryptoManager @Inject constructor() : CryptoManager {
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val KEY_SIZE_BITS = 256
         private const val TAG_LENGTH_BITS = 128
+        private val KEY_CREATION_LOCK = Any()
     }
 }

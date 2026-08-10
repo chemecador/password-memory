@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="backup_passphrase_confirm">Confirm passphrase</string>
+    <plurals name="backup_passphrase_minimum">
+        <item quantity="one">Use at least %1$d character. This passphrase cannot be recovered.</item>
+        <item quantity="other">Use at least %1$d characters. This passphrase cannot be recovered.</item>
+    </plurals>
+    <string name="backup_passphrase_mismatch">The passphrases do not match.</string>
+</resources>
