@@ -1,0 +1,1 @@
+Gestor local con bloqueo biométrico, copias cifradas y Autocompletar.

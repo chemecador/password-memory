@@ -1,0 +1,18 @@
+Keep your passwords on your Android device, without accounts, cloud sync, analytics, ads or an internet permission.
+
+Password Memory is a local password manager protected by Android biometrics or your device PIN or pattern. Recoverable passwords are encrypted with AES-256-GCM using Android Keystore. You can also save a password as an irrecoverable salted hash when you only want to verify future guesses.
+
+Features:
+
+• Android Autofill for compatible apps and browsers, with the requesting origin shown before you approve access
+• Encrypted offline backups protected by a one-time passphrase
+• Import from Google Password Manager or Chrome CSV exports
+• Password generator with configurable length and character sets
+• Search, categories and favorites
+• Configurable automatic app lock
+• Sensitive clipboard marking and optional automatic clearing
+• Screenshot, screen-recording and recents-preview protection
+
+Everything is designed to stay local. The app has no network permission and Android cloud backup and device transfer are disabled. You decide when data leaves the private vault by filling another app, copying a value, importing a file or exporting an encrypted backup.
+
+Important: hashed passwords cannot be revealed or recovered. Keep the passphrase for every exported backup somewhere safe; it is never saved by the app.

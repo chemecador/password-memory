@@ -1,0 +1,18 @@
+Guarda tus contraseñas en tu dispositivo Android, sin cuentas, sincronización en la nube, analítica, anuncios ni permiso de internet.
+
+Password Memory es un gestor local protegido con la biometría de Android o el PIN o patrón del dispositivo. Las contraseñas recuperables se cifran con AES-256-GCM mediante Android Keystore. También puedes guardar una contraseña como hash con sal irrecuperable si sólo quieres comprobar intentos futuros.
+
+Funciones:
+
+• Autocompletar de Android para apps y navegadores compatibles, mostrando el origen solicitante antes de autorizar el acceso
+• Copias offline cifradas y protegidas por una contraseña de un solo uso
+• Importación de CSV exportados desde Google Password Manager o Chrome
+• Generador de contraseñas con longitud y tipos de caracteres configurables
+• Búsqueda, categorías y favoritos
+• Bloqueo automático configurable
+• Portapapeles marcado como sensible y borrado automático opcional
+• Bloqueo de capturas, grabación de pantalla y vista previa de recientes
+
+Todo está diseñado para permanecer en local. La app no tiene permiso de red y las copias de Android en la nube o entre dispositivos están desactivadas. Tú decides cuándo sale un dato de la caja fuerte privada al rellenar otra app, copiar un valor, importar un archivo o exportar una copia cifrada.
+
+Importante: las contraseñas guardadas como hash no pueden mostrarse ni recuperarse. Conserva en un lugar seguro la contraseña de cada copia exportada; la app nunca la guarda.
