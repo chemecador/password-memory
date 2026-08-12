@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.MoreVert
@@ -58,6 +59,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chemecador.passwordmemory.R
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
+import com.chemecador.passwordmemory.domain.model.ServiceGroup
 import com.chemecador.passwordmemory.ui.common.ModeBadge
 import com.chemecador.passwordmemory.ui.common.ServiceAvatar
 
@@ -65,6 +67,7 @@ import com.chemecador.passwordmemory.ui.common.ServiceAvatar
 @Composable
 fun EntryListScreen(
     onEntryClick: (Long) -> Unit,
+    onServiceClick: (String) -> Unit,
     onCreateClick: () -> Unit,
     onBackupClick: () -> Unit,
     onAutofillClick: () -> Unit,
@@ -128,11 +131,20 @@ fun EntryListScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(state.entries, key = { it.id }) { entry ->
-                        EntryCard(
-                            entry = entry,
-                            onClick = { onEntryClick(entry.id) },
-                            onFavoriteClick = { viewModel.onFavoriteToggle(entry) },
+                    items(state.groups, key = { it.key }) { group ->
+                        ServiceCard(
+                            group = group,
+                            // A service with a single account has nothing to choose from, so the
+                            // list of accounts would be a screen with one row on it.
+                            onClick = {
+                                val single = group.single
+                                if (single != null) {
+                                    onEntryClick(single.id)
+                                } else {
+                                    onServiceClick(group.key)
+                                }
+                            },
+                            onFavoriteClick = { entry -> viewModel.onFavoriteToggle(entry) },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -275,13 +287,18 @@ private fun FilterRow(
     }
 }
 
+/**
+ * One service. A single account behaves as the row always has — its username, its mode, its
+ * favourite star; several accounts show how many there are and open the list of them instead.
+ */
 @Composable
-private fun EntryCard(
-    entry: PasswordEntry,
+private fun ServiceCard(
+    group: ServiceGroup,
     onClick: () -> Unit,
-    onFavoriteClick: () -> Unit,
+    onFavoriteClick: (PasswordEntry) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val single = group.single
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
@@ -295,13 +312,13 @@ private fun EntryCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ServiceAvatar(serviceName = entry.serviceName)
+            ServiceAvatar(serviceName = group.serviceName)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = entry.serviceName,
+                    text = group.serviceName,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -310,8 +327,15 @@ private fun EntryCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ModeBadge(entry.mode)
-                    entry.username?.let {
+                    // Accounts of the same service can be protected differently; when they are,
+                    // there is no single mode to put on the row.
+                    group.mode?.let { ModeBadge(it) }
+                    val subtitle = if (single != null) {
+                        single.username
+                    } else {
+                        pluralStringResource(R.plurals.list_accounts, group.size, group.size)
+                    }
+                    subtitle?.let {
                         Text(
                             text = it,
                             style = MaterialTheme.typography.bodySmall,
@@ -322,13 +346,22 @@ private fun EntryCard(
                     }
                 }
             }
-            IconButton(onClick = onFavoriteClick) {
+            if (single != null) {
+                IconButton(onClick = { onFavoriteClick(single) }) {
+                    Icon(
+                        imageVector = if (single.isFavorite) Icons.Rounded.Star
+                        else Icons.Rounded.StarBorder,
+                        contentDescription = stringResource(R.string.list_toggle_favorite),
+                        tint = if (single.isFavorite) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline
+                    )
+                }
+            } else {
                 Icon(
-                    imageVector = if (entry.isFavorite) Icons.Rounded.Star
-                    else Icons.Rounded.StarBorder,
-                    contentDescription = stringResource(R.string.list_toggle_favorite),
-                    tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outline
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    tint = MaterialTheme.colorScheme.outline
                 )
             }
         }

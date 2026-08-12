@@ -387,7 +387,14 @@ private fun DeleteDialog(
             )
         },
         title = { Text(stringResource(R.string.delete_title)) },
-        text = { Text(stringResource(R.string.delete_message, entry?.serviceName.orEmpty())) },
+        // The service name alone reads as "delete x.com" when the user has several accounts on
+        // it, which is the opposite of what the button does.
+        text = {
+            val name = entry?.username
+                ?.let { stringResource(R.string.delete_account, entry.serviceName, it) }
+                ?: entry?.serviceName.orEmpty()
+            Text(stringResource(R.string.delete_message, name))
+        },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(

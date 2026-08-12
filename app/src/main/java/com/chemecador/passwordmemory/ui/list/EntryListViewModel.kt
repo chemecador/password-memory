@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chemecador.passwordmemory.data.repository.PasswordRepository
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
+import com.chemecador.passwordmemory.domain.model.ServiceGroup
+import com.chemecador.passwordmemory.domain.model.groupByService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -14,7 +16,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class EntryListUiState(
+    /** Every entry the filters let through, ungrouped: what the autofill picker chooses from. */
     val entries: List<PasswordEntry> = emptyList(),
+    /** The same entries as the list shows them: one row per service. */
+    val groups: List<ServiceGroup> = emptyList(),
     val categories: List<String> = emptyList(),
     val query: String = "",
     val selectedCategory: String? = null,
@@ -43,8 +48,10 @@ class EntryListViewModel @Inject constructor(
         repository.observeCategories(),
         filters
     ) { entries, categories, current ->
+        val matching = entries.filter { it.matches(current) }
         EntryListUiState(
-            entries = entries.filter { it.matches(current) },
+            entries = matching,
+            groups = matching.groupByService(),
             categories = categories,
             query = current.query,
             selectedCategory = current.category,

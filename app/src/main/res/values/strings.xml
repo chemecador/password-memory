@@ -35,6 +35,13 @@
         <item quantity="one">%1$d entry</item>
         <item quantity="other">%1$d entries</item>
     </plurals>
+    <plurals name="list_accounts">
+        <item quantity="one">%1$d saved account</item>
+        <item quantity="other">%1$d saved accounts</item>
+    </plurals>
+
+    <!-- Accounts of one service -->
+    <string name="service_no_username">No username</string>
 
     <!-- Protection modes -->
     <string name="mode_encrypted">Encrypted</string>
@@ -86,6 +93,8 @@
     <!-- Delete -->
     <string name="delete_title">Delete entry</string>
     <string name="delete_message">Delete \"%1$s\"? This cannot be undone.</string>
+    <!-- Service and username, so deleting one account of several does not read as deleting the service -->
+    <string name="delete_account">%1$s – %2$s</string>
 
     <!-- Backup -->
     <string name="backup_title">Backup</string>

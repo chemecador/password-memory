@@ -12,6 +12,7 @@ import com.chemecador.passwordmemory.ui.backup.BackupScreen
 import com.chemecador.passwordmemory.ui.detail.EntryDetailScreen
 import com.chemecador.passwordmemory.ui.edit.EditEntryScreen
 import com.chemecador.passwordmemory.ui.list.EntryListScreen
+import com.chemecador.passwordmemory.ui.list.ServiceEntriesScreen
 import com.chemecador.passwordmemory.ui.privacy.PrivacyPolicyScreen
 import com.chemecador.passwordmemory.ui.settings.SettingsScreen
 
@@ -27,11 +28,23 @@ fun PasswordMemoryNavHost(modifier: Modifier = Modifier) {
         composable(Destinations.LIST) {
             EntryListScreen(
                 onEntryClick = { navController.navigate(Destinations.detail(it)) },
+                onServiceClick = { navController.navigate(Destinations.service(it)) },
                 onCreateClick = { navController.navigate(Destinations.edit()) },
                 onBackupClick = { navController.navigate(Destinations.BACKUP) },
                 onAutofillClick = { navController.navigate(Destinations.AUTOFILL) },
                 onSettingsClick = { navController.navigate(Destinations.SETTINGS) },
                 onPrivacyClick = { navController.navigate(Destinations.PRIVACY) }
+            )
+        }
+        composable(
+            route = Destinations.SERVICE,
+            arguments = listOf(navArgument(Destinations.ARG_SERVICE_KEY) {
+                type = NavType.StringType
+            })
+        ) {
+            ServiceEntriesScreen(
+                onBack = navController::popBackStack,
+                onEntryClick = { navController.navigate(Destinations.detail(it)) }
             )
         }
         composable(

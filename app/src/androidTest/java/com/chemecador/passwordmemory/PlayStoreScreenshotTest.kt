@@ -153,6 +153,7 @@ class PlayStoreScreenshotTest {
         setScreen {
             EntryListScreen(
                 onEntryClick = {},
+                onServiceClick = {},
                 onCreateClick = {},
                 onBackupClick = {},
                 onAutofillClick = {},
@@ -175,6 +176,7 @@ class PlayStoreScreenshotTest {
             Box(modifier = Modifier.fillMaxSize()) {
                 EntryListScreen(
                     onEntryClick = {},
+                    onServiceClick = {},
                     onCreateClick = {},
                     onBackupClick = {},
                     onAutofillClick = {},

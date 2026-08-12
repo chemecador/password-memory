@@ -55,6 +55,7 @@ When creating an entry, the user chooses between two protection modes **per entr
 ## Features
 
 - Entry list with **search** by service name.
+- **Grouping by service**: entries are collapsed into one row per service name (trimmed, case-insensitive), so two accounts on the same site are a single row. A row with one account shows its username and its favorite star as before; a row with several shows how many accounts there are and opens the list of them, from which the user reaches the detail of one. Filters run over entries and the survivors are grouped, so a filtered row only counts the accounts that matched. The autofill entry picker stays flat: it chooses a credential, not a service, and an extra tap in the middle of filling a form is worse than a longer list.
 - **Categories** and **favorites** to organize the list.
 - **Password generator** for random passwords (configurable length and character types) integrated into the creation form.
 - Add, edit, and delete entries. In a hashed entry, the password is not editable (only delete the entry and create a new one).
@@ -86,7 +87,7 @@ com.chemecador.passwordmemory
 ├── domain          # models and use cases if valuable
 ├── security        # CryptoManager (Keystore/AES), Hasher (SHA-256+salt), generator
 ├── ui
-│   ├── list        # list, search, categories
+│   ├── list        # list grouped by service, search, categories, accounts of a service
 │   ├── detail      # view/copy or guess
 │   ├── edit        # create/edit entry
 │   ├── lock        # biometric lock screen

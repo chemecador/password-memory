@@ -34,6 +34,14 @@
         <item quantity="many">%1$d entradas</item>
         <item quantity="other">%1$d entradas</item>
     </plurals>
+    <plurals name="list_accounts">
+        <item quantity="one">%1$d cuenta guardada</item>
+        <item quantity="many">%1$d cuentas guardadas</item>
+        <item quantity="other">%1$d cuentas guardadas</item>
+    </plurals>
+
+    <!-- Cuentas de un servicio -->
+    <string name="service_no_username">Sin nombre de usuario</string>
 
     <!-- Protection modes -->
     <string name="mode_encrypted">Cifrada</string>
@@ -85,6 +93,8 @@
     <!-- Delete -->
     <string name="delete_title">Eliminar entrada</string>
     <string name="delete_message">¿Eliminar \"%1$s\"? No se puede deshacer.</string>
+    <!-- Servicio y usuario, para que borrar una cuenta de varias no parezca borrar el servicio -->
+    <string name="delete_account">%1$s – %2$s</string>
 
     <!-- Backup -->
     <string name="backup_title">Copia de seguridad</string>
