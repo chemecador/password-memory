@@ -169,6 +169,31 @@ class PasswordRepositoryTest {
     }
 
     @Test
+    fun `a pasted url is stored under the name of the service`() = runTest {
+        val id = repository.createEncrypted(
+            draft.copy(serviceName = " https://www.netflix.com "),
+            "pw"
+        )
+
+        assertEquals("netflix.com", repository.getEntry(id)!!.serviceName)
+
+        repository.update(id, draft.copy(serviceName = "HTTP://netflix.com"))
+
+        assertEquals("netflix.com", repository.getEntry(id)!!.serviceName)
+    }
+
+    @Test
+    fun `a captured credential finds the entry it belongs to through the prefix`() = runTest {
+        val first = repository.saveCaptured("github.com", "someone", "old", null)
+
+        val second = repository.saveCaptured("https://www.github.com", "someone", "new", null)
+
+        assertEquals(first, second)
+        assertEquals(1, repository.getEntries().size)
+        assertEquals("new", repository.revealed(first))
+    }
+
+    @Test
     fun `entries are exposed without any cryptographic material`() = runTest {
         repository.createEncrypted(draft, "pw")
         repository.createHashed(draft.copy(serviceName = "Bank"), "pw")
@@ -337,6 +362,27 @@ class PasswordRepositoryTest {
         assertEquals("s3cr3t", repository.revealed(encrypted.id))
         val hashed = entries.single { it.mode == ProtectionMode.HASHED }
         assertTrue(repository.verifyGuess(hashed.id, "other"))
+    }
+
+    @Test
+    fun `imported entries are stored under the same cleaned name as typed ones`() = runTest {
+        val imported = BackupEntry(
+            serviceName = "  https://www.netflix.com  ",
+            username = "someone@example.com",
+            hint = null,
+            category = null,
+            isFavorite = false,
+            mode = ProtectionMode.ENCRYPTED,
+            plainPassword = "s3cr3t",
+            createdAt = 1,
+            updatedAt = 1
+        )
+
+        repository.importEntries(listOf(imported))
+
+        assertEquals("netflix.com", dao.getAll().single().serviceName)
+        // And so the row it would have duplicated is now recognised as its own.
+        assertTrue(EntryKey.of("Netflix.com", "someone@example.com") in repository.existingKeys())
     }
 
     @Test

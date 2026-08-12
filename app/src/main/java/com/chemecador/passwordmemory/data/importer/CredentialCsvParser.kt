@@ -2,6 +2,7 @@ package com.chemecador.passwordmemory.data.importer
 
 import com.chemecador.passwordmemory.data.backup.BackupEntry
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
+import com.chemecador.passwordmemory.domain.model.ServiceName
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,7 +42,9 @@ class CredentialCsvParser @Inject constructor() {
         val entries = rows.drop(1).mapNotNull { row ->
             val password = row.field(passwordAt)
             val url = row.field(urlAt)
-            val service = row.field(nameAt) ?: url?.let(::hostOf)
+            // Chrome writes the URL into the name column as often as not, so the name is cleaned
+            // here rather than at the end: the preview has to show what will actually be stored.
+            val service = (row.field(nameAt) ?: url?.let(::hostOf))?.let(ServiceName::clean)
             if (password == null || service == null) {
                 skipped++
                 return@mapNotNull null

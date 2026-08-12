@@ -35,6 +35,20 @@ class ServiceGroupTest {
     }
 
     @Test
+    fun `a url prefix neither splits a service nor moves it out of its letter`() {
+        val groups = listOf(
+            entry(id = 1, service = "https://www.netflix.com", username = "zoe"),
+            entry(id = 2, service = "netflix.com", username = "adam"),
+            entry(id = 3, service = "Hotmail")
+        ).groupByService()
+
+        // One row, and it sorts under N with the prefix gone rather than under H beside Hotmail.
+        assertEquals(listOf("hotmail", "netflix.com"), groups.map(ServiceGroup::key))
+        assertEquals(listOf(2L, 1L), groups.last().entries.map(PasswordEntry::id))
+        assertEquals("netflix.com", groups.last().serviceName)
+    }
+
+    @Test
     fun `a service with one account exposes it, one with several does not`() {
         val alone = listOf(entry(id = 1, service = "Gmail")).groupByService().single()
         val shared = listOf(

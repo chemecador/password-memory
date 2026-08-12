@@ -6,6 +6,7 @@ import com.chemecador.passwordmemory.data.db.PasswordEntryEntity
 import com.chemecador.passwordmemory.data.importer.EntryKey
 import com.chemecador.passwordmemory.domain.model.PasswordEntry
 import com.chemecador.passwordmemory.domain.model.ProtectionMode
+import com.chemecador.passwordmemory.domain.model.ServiceName
 import com.chemecador.passwordmemory.security.AuthenticationRequiredException
 import com.chemecador.passwordmemory.security.CryptoManager
 import com.chemecador.passwordmemory.security.EncryptedPayload
@@ -101,7 +102,7 @@ class PasswordRepository @Inject constructor(
     suspend fun update(id: Long, draft: EntryDraft, newPassword: String? = null) {
         val current = dao.getById(id) ?: return
         var updated = current.copy(
-            serviceName = draft.serviceName.trim(),
+            serviceName = ServiceName.clean(draft.serviceName),
             username = draft.username.normalise(),
             hint = draft.hint.normalise(),
             category = draft.category.normalise(),
@@ -266,7 +267,7 @@ class PasswordRepository @Inject constructor(
         val restored = entries.map { entry ->
             require(entry.serviceName.isNotBlank()) { "Backup entry has no service name" }
             val base = PasswordEntryEntity(
-                serviceName = entry.serviceName,
+                serviceName = ServiceName.clean(entry.serviceName),
                 username = entry.username,
                 hint = entry.hint,
                 category = entry.category,
@@ -339,7 +340,7 @@ private fun EntryDraft.toEntity(
     createdAt: Long,
     updatedAt: Long
 ) = PasswordEntryEntity(
-    serviceName = serviceName.trim(),
+    serviceName = ServiceName.clean(serviceName),
     username = username.normalise(),
     hint = hint.normalise(),
     category = category.normalise(),

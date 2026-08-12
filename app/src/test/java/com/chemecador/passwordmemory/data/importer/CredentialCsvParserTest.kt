@@ -47,6 +47,22 @@ class CredentialCsvParserTest {
     }
 
     @Test
+    fun `a name column holding a url is imported as the service, not as the url`() {
+        val parsed = parse(
+            """
+            name,url,username,password
+            https://www.netflix.com,https://netflix.com/login,me@example.com,s3cr3t
+            """.trimIndent()
+        )
+
+        val entry = parsed.entries.single()
+        // The preview shows this name and the import stores it, so it is cleaned before either.
+        assertEquals("netflix.com", entry.serviceName)
+        // The full URL still reaches the hint, which is what autofill matches on.
+        assertEquals("https://netflix.com/login", entry.hint)
+    }
+
+    @Test
     fun `an export without the note column still works`() {
         val parsed = parse(
             """

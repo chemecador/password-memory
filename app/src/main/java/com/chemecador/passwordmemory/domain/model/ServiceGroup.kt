@@ -4,8 +4,8 @@ package com.chemecador.passwordmemory.domain.model
  * Every account saved under the same service, as one row of the list.
  *
  * Entries carry no notion of a service beyond their name, so the name is the identity: it is
- * matched trimmed and case-insensitively, the same way [com.chemecador.passwordmemory.data.importer.EntryKey]
- * decides what counts as a duplicate.
+ * matched through [ServiceName.key], the same way
+ * [com.chemecador.passwordmemory.data.importer.EntryKey] decides what counts as a duplicate.
  */
 data class ServiceGroup(
     val key: String,
@@ -26,7 +26,7 @@ data class ServiceGroup(
         get() = entries.map(PasswordEntry::mode).distinct().singleOrNull()
 
     companion object {
-        fun keyOf(serviceName: String): String = serviceName.trim().lowercase()
+        fun keyOf(serviceName: String): String = ServiceName.key(serviceName)
     }
 }
 
@@ -44,7 +44,7 @@ fun List<PasswordEntry>.groupByService(): List<ServiceGroup> =
             val accounts = entries.sortedWith(ACCOUNT_ORDER)
             ServiceGroup(
                 key = key,
-                serviceName = accounts.first().serviceName.trim(),
+                serviceName = ServiceName.clean(accounts.first().serviceName),
                 entries = accounts
             )
         }
