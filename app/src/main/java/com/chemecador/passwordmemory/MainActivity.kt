@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.withResumed
 import com.chemecador.passwordmemory.data.settings.SettingsRepository
 import com.chemecador.passwordmemory.domain.model.AutoLockTimeout
 import com.chemecador.passwordmemory.ui.common.blockScreenCapture
@@ -76,6 +77,9 @@ private fun AppRoot(
     var revealed by remember { mutableStateOf(false) }
     var unavailable by remember { mutableStateOf(false) }
     var promptShown by remember { mutableStateOf(false) }
+    // Set when the user turns the prompt away. Without it the prompt would go straight back up and
+    // the only way out of the app would be to kill it.
+    var promptDismissed by remember { mutableStateOf(false) }
     var pickerPending by remember { mutableStateOf(false) }
     // When the app went to the background, or null while it is in front. Monotonic, so changing the
     // device clock cannot buy extra unlocked time.
@@ -95,7 +99,10 @@ private fun AppRoot(
                 }
 
                 LockResult.Unavailable -> unavailable = true
-                LockResult.Cancelled -> promptShown = false
+                LockResult.Cancelled -> {
+                    promptShown = false
+                    promptDismissed = true
+                }
             }
         }
     }
@@ -128,6 +135,9 @@ private fun AppRoot(
                 }
 
                 Lifecycle.Event.ON_START -> {
+                    // Coming back is a fresh attempt at getting in, so a prompt turned away earlier
+                    // is not held against the user.
+                    promptDismissed = false
                     val away = leftAt?.let { SystemClock.elapsedRealtime() - it }
                     leftAt = null
                     val timeout = settings.current().autoLock.duration.inWholeMilliseconds
@@ -141,8 +151,15 @@ private fun AppRoot(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(unlocked, promptShown, unavailable) {
-        if (!unlocked && !promptShown && !unavailable) authenticate()
+    // Being asked is the point of opening a locked app, so the prompt comes up by itself and the
+    // lock screen behind it is only a backdrop. It has to wait for the activity to be resumed:
+    // `BiometricPrompt` refuses to show anything once its host has saved its state, and it refuses
+    // silently, without ever calling back. That is what an immediate auto-lock ran into — the lock
+    // on the way out to the background asked for a prompt nobody could see, and the request that
+    // never came back left the app waiting for a tap on returning.
+    LaunchedEffect(unlocked, promptShown, unavailable, promptDismissed) {
+        if (unlocked || promptShown || unavailable || promptDismissed) return@LaunchedEffect
+        lifecycleOwner.withResumed { authenticate() }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -168,6 +185,7 @@ private fun AppRoot(
                 unavailable = unavailable,
                 onUnlockClick = ::authenticate,
                 modifier = Modifier.fillMaxSize(),
+                canRetry = promptDismissed,
                 unlocking = unlocked,
                 onUnlockAnimationEnd = { revealed = true }
             )

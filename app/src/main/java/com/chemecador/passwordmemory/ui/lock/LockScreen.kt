@@ -55,6 +55,10 @@ import kotlin.math.sin
  * Shown whenever the app is locked. It has no content of its own: nothing is readable until the
  * user authenticates.
  *
+ * The system prompt comes up on its own, so this is normally only the backdrop behind it. There is
+ * a button to bring the prompt back, but only once the user has turned it away and [canRetry] says
+ * so: offering it up front would be an extra tap on the one path everybody takes.
+ *
  * Once [unlocking] turns true the padlock springs open, throws a burst of light and the whole
  * screen dissolves into the content waiting underneath. [onUnlockAnimationEnd] fires when the
  * screen has finished fading, which is the caller's cue to stop composing it.
@@ -64,6 +68,7 @@ fun LockScreen(
     unavailable: Boolean,
     onUnlockClick: () -> Unit,
     modifier: Modifier = Modifier,
+    canRetry: Boolean = false,
     unlocking: Boolean = false,
     onUnlockAnimationEnd: () -> Unit = {}
 ) {
@@ -154,7 +159,7 @@ fun LockScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.widthIn(max = 320.dp)
                 )
-                if (!unavailable) {
+                if (!unavailable && canRetry) {
                     Button(
                         onClick = onUnlockClick,
                         enabled = !unlocking,
