@@ -35,17 +35,14 @@ android {
         applicationId = "com.chemecador.passwordmemory"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // Committed schemas are the reference every future migration is tested against; the assets
     // entry is what lets MigrationTestHelper open version 1 from an instrumented test.
-    ksp {
-        arg("room.schemaLocation", "$projectDir/schemas")
-    }
     sourceSets.getByName("androidTest") {
         assets.directories.add("$projectDir/schemas")
     }
@@ -85,6 +82,10 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 // room-testing reads the exported schemas with kotlinx-serialization, and its serializers were
