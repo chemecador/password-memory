@@ -72,6 +72,21 @@ class EntryListViewModelTest {
     }
 
     @Test
+    fun `a search matching a username keeps only that account`() = runTest(dispatcher) {
+        save(service = "x.com", username = "work@mail.com")
+        save(service = "x.com", username = "personal@mail.com")
+        save(service = "Gmail", username = "me")
+        val viewModel = EntryListViewModel(repository)
+
+        viewModel.onQueryChange("work@")
+        val state = stateOf(viewModel)
+
+        val group = state.groups.single()
+        assertEquals("x", group.key)
+        assertEquals("work@mail.com", group.single?.username)
+    }
+
+    @Test
     fun `filtering by favourites leaves the row standing for the favourite account`() =
         runTest(dispatcher) {
             save(service = "x.com", username = "work")

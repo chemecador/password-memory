@@ -19,7 +19,7 @@
     <string name="lock_reauth_subtitle">Vuelve a identificarte para desbloquear la clave de cifrado</string>
 
     <!-- List -->
-    <string name="list_search">Buscar por servicio</string>
+    <string name="list_search">Buscar por servicio o usuario</string>
     <string name="list_add">Nueva entrada</string>
     <string name="list_menu">Más opciones</string>
     <string name="list_clear_search">Borrar la búsqueda</string>

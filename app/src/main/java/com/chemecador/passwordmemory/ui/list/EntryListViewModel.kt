@@ -82,8 +82,12 @@ class EntryListViewModel @Inject constructor(
 }
 
 private fun PasswordEntry.matches(filters: Filters): Boolean {
-    val matchesQuery = filters.query.isBlank() ||
-        serviceName.contains(filters.query.trim(), ignoreCase = true)
+    val query = filters.query.trim()
+    // The username field holds whatever identifies the account — a handle or an email — so the
+    // same search covers both.
+    val matchesQuery = query.isBlank() ||
+        serviceName.contains(query, ignoreCase = true) ||
+        username?.contains(query, ignoreCase = true) == true
     val matchesCategory = filters.category == null || category == filters.category
     val matchesFavorite = !filters.favoritesOnly || isFavorite
     return matchesQuery && matchesCategory && matchesFavorite
