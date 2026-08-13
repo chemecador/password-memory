@@ -11,11 +11,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +52,7 @@ import com.chemecador.passwordmemory.ui.common.ServiceAvatar
 fun ServiceEntriesScreen(
     onBack: () -> Unit,
     onEntryClick: (Long) -> Unit,
+    onAddAccountClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ServiceEntriesViewModel = hiltViewModel()
 ) {
@@ -94,13 +97,27 @@ fun ServiceEntriesScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
+        },
+        floatingActionButton = {
+            // Another account of the service already on screen: the name is known, so the form
+            // opens with it filled in instead of asking the user to spell it the same way again.
+            // Hidden until it is known, which is one frame, rather than carrying an empty name.
+            if (state.serviceName.isNotEmpty()) {
+                ExtendedFloatingActionButton(
+                    onClick = { onAddAccountClick(state.serviceName) },
+                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.service_add_account)) },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(state.entries, key = { it.id }) { entry ->

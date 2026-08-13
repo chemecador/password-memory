@@ -57,7 +57,16 @@ class EditEntryViewModel @Inject constructor(
     private val entryId: Long? =
         savedStateHandle.get<Long>(Destinations.ARG_ENTRY_ID)?.takeIf { it > 0 }
 
-    private val _uiState = MutableStateFlow(EditEntryUiState(entryId = entryId))
+    /**
+     * The service this account is being added to, when the form was opened from inside one. It is
+     * a starting value and not a fixed one: the field stays editable, so a name typed there by
+     * mistake is corrected the same way as any other.
+     */
+    private val presetServiceName: String =
+        savedStateHandle.get<String>(Destinations.ARG_SERVICE_NAME).orEmpty()
+
+    private val _uiState =
+        MutableStateFlow(EditEntryUiState(entryId = entryId, serviceName = presetServiceName))
     val uiState: StateFlow<EditEntryUiState> = _uiState.asStateFlow()
 
     init {

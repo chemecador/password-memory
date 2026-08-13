@@ -6,6 +6,7 @@ import com.chemecador.passwordmemory.data.repository.FakePasswordEntryDao
 import com.chemecador.passwordmemory.data.repository.PasswordRepository
 import com.chemecador.passwordmemory.security.PasswordGenerator
 import com.chemecador.passwordmemory.security.PasswordHasher
+import com.chemecador.passwordmemory.ui.navigation.Destinations
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -35,11 +36,12 @@ class EditEntryViewModelTest {
     private val crypto = FakeCryptoManager()
     private val repository = PasswordRepository(dao, crypto, PasswordHasher(SecureRandom()))
 
-    private fun viewModel() = EditEntryViewModel(
-        repository = repository,
-        generator = PasswordGenerator(SecureRandom()),
-        savedStateHandle = SavedStateHandle()
-    )
+    private fun viewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()) =
+        EditEntryViewModel(
+            repository = repository,
+            generator = PasswordGenerator(SecureRandom()),
+            savedStateHandle = savedStateHandle
+        )
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -93,6 +95,25 @@ class EditEntryViewModelTest {
         assertTrue(viewModel.uiState.value.isSaved)
         assertFalse(viewModel.uiState.value.needsAuthentication)
         assertEquals(1, dao.getAll().size)
+    }
+
+    /**
+     * Adding an account from inside a service: the name travels as a navigation argument, and the
+     * entry has to come out under the very same one, or the group the user was looking at gains a
+     * sibling row instead of a second account.
+     */
+    @Test
+    fun `an account added from a service is created under it`() = runTest(dispatcher) {
+        val viewModel = viewModel(SavedStateHandle(mapOf(Destinations.ARG_SERVICE_NAME to "Gmail")))
+        assertEquals("Gmail", viewModel.uiState.value.serviceName)
+
+        viewModel.onUsernameChange("work")
+        viewModel.onPasswordChange("s3cr3t")
+        viewModel.onSaveClick()
+        advanceUntilIdle()
+
+        val saved = dao.getAll().single()
+        assertEquals("Gmail", saved.serviceName)
     }
 
     @Test

@@ -42,6 +42,7 @@
 
     <!-- Cuentas de un servicio -->
     <string name="service_no_username">Sin nombre de usuario</string>
+    <string name="service_add_account">Añadir cuenta</string>
 
     <!-- Protection modes -->
     <string name="mode_encrypted">Cifrada</string>

@@ -44,7 +44,8 @@ fun PasswordMemoryNavHost(modifier: Modifier = Modifier) {
         ) {
             ServiceEntriesScreen(
                 onBack = navController::popBackStack,
-                onEntryClick = { navController.navigate(Destinations.detail(it)) }
+                onEntryClick = { navController.navigate(Destinations.detail(it)) },
+                onAddAccountClick = { navController.navigate(Destinations.createForService(it)) }
             )
         }
         composable(
@@ -58,7 +59,15 @@ fun PasswordMemoryNavHost(modifier: Modifier = Modifier) {
         }
         composable(
             route = Destinations.EDIT,
-            arguments = listOf(navArgument(Destinations.ARG_ENTRY_ID) { type = NavType.LongType })
+            arguments = listOf(
+                navArgument(Destinations.ARG_ENTRY_ID) { type = NavType.LongType },
+                // Only set when the form was opened from a service, to fill its name in.
+                navArgument(Destinations.ARG_SERVICE_NAME) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
         ) {
             EditEntryScreen(onDone = navController::popBackStack)
         }

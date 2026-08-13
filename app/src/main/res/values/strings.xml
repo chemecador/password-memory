@@ -45,6 +45,7 @@
 
     <!-- Accounts of one service -->
     <string name="service_no_username">No username</string>
+    <string name="service_add_account">Add account</string>
 
     <!-- Protection modes -->
     <string name="mode_encrypted">Encrypted</string>
