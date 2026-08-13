@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -29,6 +30,19 @@ class PasswordRepositoryTest {
         hint = "the usual one",
         category = "Email"
     )
+
+    @Test
+    fun `an import recognises a saved brand behind its domain`() = runTest {
+        repository.createEncrypted(
+            EntryDraft(serviceName = "Gmail", username = "someone@example.com"),
+            "s3cr3t"
+        )
+
+        // What a Google export calls the same login, spelled the way Chrome writes it.
+        assertTrue(
+            EntryKey.of("https://gmail.com", "someone@example.com") in repository.existingKeys()
+        )
+    }
 
     @Test
     fun `existing keys ignore case and blank usernames`() = runTest {
@@ -191,6 +205,22 @@ class PasswordRepositoryTest {
         assertEquals(first, second)
         assertEquals(1, repository.getEntries().size)
         assertEquals("new", repository.revealed(first))
+    }
+
+    @Test
+    fun `a captured credential does not replace the password of a merely similar entry`() = runTest {
+        // The list shows `GitHub` and `github.com` as one service, but replacing a password is
+        // silent and irreversible, so autofill wants the same name and not just the same service.
+        val byBrand = repository.createEncrypted(
+            EntryDraft(serviceName = "GitHub", username = "someone"),
+            "the one that must survive"
+        )
+
+        val captured = repository.saveCaptured("github.com", "someone", "s3cr3t", null)
+
+        assertNotEquals(byBrand, captured)
+        assertEquals("the one that must survive", repository.revealed(byBrand))
+        assertEquals("s3cr3t", repository.revealed(captured))
     }
 
     @Test

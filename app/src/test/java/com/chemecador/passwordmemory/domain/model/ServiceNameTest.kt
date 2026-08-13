@@ -1,6 +1,7 @@
 package com.chemecador.passwordmemory.domain.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -54,6 +55,43 @@ class ServiceNameTest {
     @Test
     fun `the key folds case, so every spelling of a service is the same service`() {
         assertEquals(ServiceName.key("netflix.com"), ServiceName.key("https://www.Netflix.com"))
-        assertEquals("netflix.com", ServiceName.key(" HTTP://NETFLIX.COM "))
+        assertEquals(ServiceName.exactKey("netflix.com"), ServiceName.exactKey("NETFLIX.com"))
+    }
+
+    @Test
+    fun `the key sees past the domain suffix, so a brand and its domain are one service`() {
+        assertEquals(ServiceName.key("Gmail"), ServiceName.key("gmail.com"))
+        assertEquals(ServiceName.key("Netflix"), ServiceName.key("https://www.netflix.com"))
+        assertEquals("gmail", ServiceName.key("GMAIL.COM"))
+    }
+
+    @Test
+    fun `a country code is not mistaken for part of the name`() {
+        // Without this, `amazon.co.uk` would be a service called `amazon.co`, next to no one.
+        assertEquals(ServiceName.key("Amazon"), ServiceName.key("amazon.co.uk"))
+        assertEquals(ServiceName.key("Amazon"), ServiceName.key("amazon.es"))
+    }
+
+    @Test
+    fun `a subdomain still names its own service`() {
+        // Whoever saved `mail.google.com` meant that, not everything Google runs.
+        assertEquals("mail.google", ServiceName.key("mail.google.com"))
+        assertTrue(ServiceName.key("Google") != ServiceName.key("mail.google.com"))
+    }
+
+    @Test
+    fun `a name is never folded away entirely`() {
+        // A service someone chose to call `com` is called com, and a one-letter name is a name:
+        // `x.com` folds to `x` rather than to nothing, which is what makes it meet `X`.
+        assertEquals("com", ServiceName.key("com"))
+        assertEquals("co", ServiceName.key("co.uk"))
+        assertEquals(ServiceName.key("X"), ServiceName.key("https://x.com"))
+    }
+
+    @Test
+    fun `the exact key keeps the suffix the service key drops`() {
+        // The autofill save replaces a password on this one, so it never guesses at a resemblance.
+        assertEquals("gmail.com", ServiceName.exactKey("Gmail.com"))
+        assertTrue(ServiceName.exactKey("Gmail") != ServiceName.exactKey("gmail.com"))
     }
 }

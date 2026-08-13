@@ -118,9 +118,13 @@ class PasswordRepository @Inject constructor(
 
     /**
      * Stores a credential the autofill service caught being typed somewhere else. If an encrypted
-     * entry for the same service and username is already here, its password is replaced instead of
+     * entry with the same name and username is already here, its password is replaced instead of
      * piling up a second copy; [origin] is the site or app it came from, kept in the hint so the
      * entry can be recognised the next time that form shows up.
+     *
+     * The match is [EntryKey.exact] rather than the service-level [EntryKey.of] the list and the
+     * import share: replacing a password cannot be undone and nothing on screen announces it, so a
+     * second entry is the better way to be wrong here.
      */
     suspend fun saveCaptured(
         serviceName: String,
@@ -128,9 +132,10 @@ class PasswordRepository @Inject constructor(
         password: String,
         origin: String?
     ): Long {
-        val key = EntryKey.of(serviceName, username)
+        val key = EntryKey.exact(serviceName, username)
         val existing = dao.getAll().firstOrNull {
-            it.mode == ProtectionMode.ENCRYPTED && EntryKey.of(it.serviceName, it.username) == key
+            it.mode == ProtectionMode.ENCRYPTED &&
+                EntryKey.exact(it.serviceName, it.username) == key
         }
         if (existing == null) {
             return createEncrypted(

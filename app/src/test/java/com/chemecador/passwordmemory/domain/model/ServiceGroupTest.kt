@@ -20,12 +20,12 @@ class ServiceGroupTest {
             entry(id = 3, service = "Gmail", username = "someone")
         ).groupByService()
 
-        assertEquals(listOf("gmail", "x.com"), groups.map(ServiceGroup::key))
+        assertEquals(listOf("gmail", "x"), groups.map(ServiceGroup::key))
         assertEquals(listOf(1L, 2L), groups.last().entries.map(PasswordEntry::id))
     }
 
     @Test
-    fun `the label keeps the spelling of the first account in order`() {
+    fun `the label is one of the spellings its accounts actually use`() {
         val groups = listOf(
             entry(id = 1, service = " X.COM ", username = "zoe"),
             entry(id = 2, service = "x.com", username = "adam")
@@ -43,9 +43,34 @@ class ServiceGroupTest {
         ).groupByService()
 
         // One row, and it sorts under N with the prefix gone rather than under H beside Hotmail.
-        assertEquals(listOf("hotmail", "netflix.com"), groups.map(ServiceGroup::key))
+        assertEquals(listOf("hotmail", "netflix"), groups.map(ServiceGroup::key))
         assertEquals(listOf(2L, 1L), groups.last().entries.map(PasswordEntry::id))
         assertEquals("netflix.com", groups.last().serviceName)
+    }
+
+    @Test
+    fun `a brand and its domain are one service, labelled by the shorter name`() {
+        val groups = listOf(
+            entry(id = 1, service = "gmail.com", username = "zoe"),
+            entry(id = 2, service = "Gmail", username = "adam")
+        ).groupByService()
+
+        val group = groups.single()
+        assertEquals("gmail", group.key)
+        assertEquals("Gmail", group.serviceName)
+        assertEquals(2, group.size)
+    }
+
+    @Test
+    fun `the label does not depend on which spelling holds the first username`() {
+        val label = { first: String, second: String ->
+            listOf(
+                entry(id = 1, service = first, username = "adam"),
+                entry(id = 2, service = second, username = "zoe")
+            ).groupByService().single().serviceName
+        }
+
+        assertEquals(label("Gmail", "gmail.com"), label("gmail.com", "Gmail"))
     }
 
     @Test
@@ -70,7 +95,7 @@ class ServiceGroupTest {
             entry(id = 3, service = "x.com", username = "personal", favorite = true)
         ).groupByService()
 
-        assertEquals(listOf("x.com", "amazon"), groups.map(ServiceGroup::key))
+        assertEquals(listOf("x", "amazon"), groups.map(ServiceGroup::key))
         assertTrue(groups.first().isFavorite)
         // Favourites first inside the service too, so the starred account leads the accounts screen.
         assertEquals(listOf(3L, 2L), groups.first().entries.map(PasswordEntry::id))

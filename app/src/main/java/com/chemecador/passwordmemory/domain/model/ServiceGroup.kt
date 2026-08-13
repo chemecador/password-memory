@@ -35,20 +35,23 @@ data class ServiceGroup(
  * inside each group ordered the same way.
  *
  * The ordering is decided here rather than left to the query, because a service is a favourite when
- * any of its accounts is. Where two spellings of the same name exist, the first one in that order
- * wins as the label.
+ * any of its accounts is.
  */
 fun List<PasswordEntry>.groupByService(): List<ServiceGroup> =
     groupBy { ServiceGroup.keyOf(it.serviceName) }
         .map { (key, entries) ->
             val accounts = entries.sortedWith(ACCOUNT_ORDER)
-            ServiceGroup(
-                key = key,
-                serviceName = ServiceName.clean(accounts.first().serviceName),
-                entries = accounts
-            )
+            ServiceGroup(key = key, serviceName = accounts.label(), entries = accounts)
         }
         .sortedWith(SERVICE_ORDER)
+
+/**
+ * What the row calls a service whose accounts spell it differently. The shortest spelling wins:
+ * `Gmail` and `gmail.com` are one service, and which of the two names the row should not depend on
+ * whichever of them happens to hold the username that sorts first.
+ */
+private fun List<PasswordEntry>.label(): String = map { ServiceName.clean(it.serviceName) }
+    .minWith(compareBy<String>(String::length).thenBy(String.CASE_INSENSITIVE_ORDER) { it })
 
 private val ACCOUNT_ORDER = compareByDescending<PasswordEntry> { it.isFavorite }
     // Accounts without a username last: there is no name to sort them among the others by.

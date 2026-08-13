@@ -50,7 +50,7 @@ class EntryListViewModelTest {
 
         val state = stateOf(EntryListViewModel(repository))
 
-        assertEquals(listOf("gmail", "x.com"), state.groups.map(ServiceGroup::key))
+        assertEquals(listOf("gmail", "x"), state.groups.map(ServiceGroup::key))
         assertEquals(2, state.groups.last().size)
         assertNull(state.groups.last().single)
         // The header counts passwords, which is still three of them behind two rows.
@@ -67,7 +67,7 @@ class EntryListViewModelTest {
         viewModel.onQueryChange("x.co")
         val state = stateOf(viewModel)
 
-        assertEquals(listOf("x.com"), state.groups.map(ServiceGroup::key))
+        assertEquals(listOf("x"), state.groups.map(ServiceGroup::key))
         assertEquals(2, state.groups.single().size)
     }
 
