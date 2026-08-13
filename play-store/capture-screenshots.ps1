@@ -17,8 +17,11 @@ if ($null -eq $adbCommand) {
 }
 $adb = $adbCommand.Source
 
-$applicationId = "com.chemecador.passwordmemory"
-$testClass = "$applicationId.PlayStoreScreenshotTest"
+# The screenshots are captured from the debug variant, which installs under its own application
+# id so it can coexist with the released app. Class names keep the plain namespace.
+$namespace = "com.chemecador.passwordmemory"
+$applicationId = "$namespace.debug"
+$testClass = "$namespace.PlayStoreScreenshotTest"
 $remoteDirectory = "/sdcard/Android/data/$applicationId/files/play-store"
 $outputRoot = Join-Path $PSScriptRoot "assets\screenshots"
 $expectedFiles = @(

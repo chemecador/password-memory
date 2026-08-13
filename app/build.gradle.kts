@@ -62,6 +62,15 @@ android {
     }
 
     buildTypes {
+        // A debug build is signed with the local debug key, so the installer would demand
+        // uninstalling the Play release first — and that would wipe a real vault. Its own
+        // application id makes it a separate package that installs alongside it, with its own
+        // database, preferences and Keystore keys. `src/debug/res` relabels it so the two are
+        // told apart on the launcher and in the system autofill picker, where both show up.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             signingConfigs.findByName("release")?.let { signingConfig = it }
             optimization {

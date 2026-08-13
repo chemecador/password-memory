@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name" translatable="false">Password Memory</string>
+    <!-- Only what the system shows outside the app (launcher, settings, autofill picker). The
+         debug variant overrides it so it can be told apart from the installed release. -->
+    <string name="launcher_name" translatable="false">Password Memory</string>
 
     <!-- Actions -->
     <string name="action_back">Back</string>

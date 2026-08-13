@@ -75,6 +75,7 @@ When creating an entry, the user chooses between two protection modes **per entr
 - **Hilt** for dependency injection.
 - Cryptography using platform APIs (`javax.crypto`, `java.security`, Android Keystore). No external crypto libraries.
 - minSdk 26, targetSdk 36, Java 11. Namespace: `com.chemecador.passwordmemory`.
+- The debug variant installs as `com.chemecador.passwordmemory.debug` so it never has to replace the released app on a device that holds a real vault. Its data, Keystore keys and autofill registration are separate, and `src/debug/res` relabels it "Password Memory (debug)". Anything addressing the app by package name from outside (adb, scripts) has to use the variant's id, not the namespace.
 - Dependencies managed with **version catalog** (`gradle/libs.versions.toml`).
 
 ## Package Structure (indicative)
