@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AlternateEmail
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
@@ -27,6 +28,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -73,6 +75,7 @@ import kotlinx.coroutines.launch
 fun EntryDetailScreen(
     onBack: () -> Unit,
     onEditClick: (Long) -> Unit,
+    onAddAccountClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EntryDetailViewModel = hiltViewModel()
 ) {
@@ -142,6 +145,17 @@ fun EntryDetailScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            if (entry != null) {
+                ExtendedFloatingActionButton(
+                    onClick = { onAddAccountClick(entry.serviceName) },
+                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.list_add)) },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
     ) { innerPadding ->
         if (entry == null) return@Scaffold
@@ -152,7 +166,7 @@ fun EntryDetailScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
+                .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Hero(entry = entry)

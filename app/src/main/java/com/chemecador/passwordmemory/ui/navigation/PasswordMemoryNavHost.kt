@@ -54,7 +54,8 @@ fun PasswordMemoryNavHost(modifier: Modifier = Modifier) {
         ) {
             EntryDetailScreen(
                 onBack = navController::popBackStack,
-                onEditClick = { navController.navigate(Destinations.edit(it)) }
+                onEditClick = { navController.navigate(Destinations.edit(it)) },
+                onAddAccountClick = { navController.navigate(Destinations.createForService(it)) }
             )
         }
         composable(

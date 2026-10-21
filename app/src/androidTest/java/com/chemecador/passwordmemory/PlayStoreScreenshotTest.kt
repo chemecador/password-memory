@@ -240,6 +240,7 @@ class PlayStoreScreenshotTest {
             EntryDetailScreen(
                 onBack = {},
                 onEditClick = {},
+                onAddAccountClick = {},
                 modifier = storePreviewModifier(),
                 viewModel = viewModel
             )
@@ -261,6 +262,7 @@ class PlayStoreScreenshotTest {
             EntryDetailScreen(
                 onBack = {},
                 onEditClick = {},
+                onAddAccountClick = {},
                 modifier = storePreviewModifier(),
                 viewModel = viewModel
             )
