@@ -1,0 +1,3 @@
+- Choose whether to search by entry name or across service names, usernames, hints and categories.
+- Use the same search options when choosing an entry for autofill.
+- Add another account directly from an entry's details, with the service name already filled in.

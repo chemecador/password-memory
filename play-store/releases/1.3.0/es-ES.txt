@@ -1,0 +1,3 @@
+- Elige si quieres buscar por nombre de entrada o también en servicios, usuarios, pistas y categorías.
+- Usa las mismas opciones de búsqueda al elegir una entrada para autocompletar.
+- Añade otra cuenta desde el detalle de una entrada, con el nombre del servicio ya rellenado.

@@ -1,0 +1,38 @@
+{
+  "applicationId": "com.chemecador.passwordmemory",
+  "versionCode": 4,
+  "versionName": "1.3.0",
+  "sourceBaseCommit": "783a356f4dc56e864def6c9cffeb422abf7dfbe3",
+  "includesUncommittedVersionBump": true,
+  "bundleSha256": "2b35338c1d97f16166444b9761a3756488776e77d91a2c51fbbc918b34de0339",
+  "bundleSizeBytes": 4930187,
+  "uploadCertificateSha256": "3F:3F:23:5D:3D:E1:DD:EB:2C:20:1F:09:E7:97:26:32:4A:D4:2E:89:CE:F6:DA:63:27:A1:B8:B1:90:BA:09:04",
+  "validation": {
+    "unitTestsPassed": 136,
+    "instrumentedTestsPassed": 6,
+    "instrumentedApiLevel": 36,
+    "lintErrors": 0,
+    "lintWarnings": 33,
+    "bundletoolPassed": true,
+    "signedPayloadEntriesVerified": 474,
+    "uploadCertificateMatchesPlayConsole": true,
+    "releaseManifestHasNoNetworkOrAdvertisingPermissions": true,
+    "releaseManifestDisablesSystemBackup": true,
+    "workflow": "macOS execution of the same Java verifier and Gradle gates as verify-release.ps1; clean, testDebugUnitTest, lintRelease, bundleRelease, validatePlayBundle; configuration cache and daemon disabled"
+  },
+  "googlePlay": {
+    "submissionObservedAtUtc": "2026-10-21T21:31:03.166768+00:00",
+    "track": "production",
+    "releaseName": "4 (1.3.0)",
+    "rolloutPercentage": 100,
+    "managedPublishing": false,
+    "status": "changes_in_review",
+    "quickChecks": "in_progress_at_submission",
+    "releaseNotesLocales": [
+      "en-US",
+      "es-ES"
+    ],
+    "nonBlockingWarning": "Native debug symbols are not supplied for bundled native libraries.",
+    "consoleUrl": "https://play.google.com/console/u/0/developers/4790446848560636788/app/4975153029990054813/publishing"
+  }
+}
