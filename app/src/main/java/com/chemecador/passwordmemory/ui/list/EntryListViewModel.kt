@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class SearchScope { SERVICE_NAME, ANYWHERE }
+
 data class EntryListUiState(
     /** Every entry the filters let through, ungrouped: what the autofill picker chooses from. */
     val entries: List<PasswordEntry> = emptyList(),
@@ -22,6 +24,7 @@ data class EntryListUiState(
     val groups: List<ServiceGroup> = emptyList(),
     val categories: List<String> = emptyList(),
     val query: String = "",
+    val searchScope: SearchScope = SearchScope.SERVICE_NAME,
     val selectedCategory: String? = null,
     val favoritesOnly: Boolean = false,
     val isLoading: Boolean = true
@@ -32,6 +35,7 @@ data class EntryListUiState(
 
 private data class Filters(
     val query: String = "",
+    val searchScope: SearchScope = SearchScope.SERVICE_NAME,
     val category: String? = null,
     val favoritesOnly: Boolean = false
 )
@@ -54,6 +58,7 @@ class EntryListViewModel @Inject constructor(
             groups = matching.groupByService(),
             categories = categories,
             query = current.query,
+            searchScope = current.searchScope,
             selectedCategory = current.category,
             favoritesOnly = current.favoritesOnly,
             isLoading = false
@@ -66,6 +71,10 @@ class EntryListViewModel @Inject constructor(
 
     fun onQueryChange(query: String) {
         filters.value = filters.value.copy(query = query)
+    }
+
+    fun onSearchScopeChange(scope: SearchScope) {
+        filters.value = filters.value.copy(searchScope = scope)
     }
 
     fun onCategorySelected(category: String?) {
@@ -83,11 +92,14 @@ class EntryListViewModel @Inject constructor(
 
 private fun PasswordEntry.matches(filters: Filters): Boolean {
     val query = filters.query.trim()
-    // The username field holds whatever identifies the account — a handle or an email — so the
-    // same search covers both.
+    // Search only the entry's metadata; passwords are never decrypted for a search.
     val matchesQuery = query.isBlank() ||
         serviceName.contains(query, ignoreCase = true) ||
-        username?.contains(query, ignoreCase = true) == true
+        (filters.searchScope == SearchScope.ANYWHERE && (
+            username?.contains(query, ignoreCase = true) == true ||
+                hint?.contains(query, ignoreCase = true) == true ||
+                category?.contains(query, ignoreCase = true) == true
+            ))
     val matchesCategory = filters.category == null || category == filters.category
     val matchesFavorite = !filters.favoritesOnly || isFavorite
     return matchesQuery && matchesCategory && matchesFavorite

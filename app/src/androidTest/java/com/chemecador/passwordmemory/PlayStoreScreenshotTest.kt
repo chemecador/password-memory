@@ -12,11 +12,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
@@ -169,6 +175,83 @@ class PlayStoreScreenshotTest {
     }
 
     @Test
+    fun captureSearchScopes() {
+        runBlocking {
+            database.entryDao().insertAll(
+                listOf(
+                    PasswordEntryEntity(
+                        id = 10,
+                        serviceName = "Gmail",
+                        username = "personal@example.test",
+                        mode = ProtectionMode.ENCRYPTED,
+                        cipherText = byteArrayOf(1, 2, 3),
+                        iv = ByteArray(12),
+                        createdAt = SAMPLE_TIME,
+                        updatedAt = SAMPLE_TIME
+                    ),
+                    PasswordEntryEntity(
+                        id = 11,
+                        serviceName = "Gmail",
+                        username = "work@example.test",
+                        mode = ProtectionMode.ENCRYPTED,
+                        cipherText = byteArrayOf(1, 2, 3),
+                        iv = ByteArray(12),
+                        createdAt = SAMPLE_TIME,
+                        updatedAt = SAMPLE_TIME
+                    ),
+                    PasswordEntryEntity(
+                        id = 12,
+                        serviceName = "Netflix",
+                        username = "demo.search@gmail.com",
+                        mode = ProtectionMode.ENCRYPTED,
+                        cipherText = byteArrayOf(1, 2, 3),
+                        iv = ByteArray(12),
+                        createdAt = SAMPLE_TIME,
+                        updatedAt = SAMPLE_TIME
+                    )
+                )
+            )
+        }
+        val viewModel = EntryListViewModel(repository)
+        setScreen {
+            EntryListScreen(
+                onEntryClick = {},
+                onServiceClick = {},
+                onCreateClick = {},
+                onBackupClick = {},
+                onAutofillClick = {},
+                onSettingsClick = {},
+                onPrivacyClick = {},
+                modifier = storePreviewModifier(),
+                viewModel = viewModel
+            )
+        }
+
+        waitForText("Gmail")
+        composeRule.onNode(hasSetTextAction()).performTextInput("gmail")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        val byEntry = context.getString(R.string.list_search_scope_service)
+        val anywhere = context.getString(R.string.list_search_scope_anywhere)
+        val searchScope = context.getString(R.string.list_search_scope)
+        composeRule.onNodeWithText("Gmail").assertIsDisplayed()
+        composeRule.onNodeWithText("Netflix").assertDoesNotExist()
+        saveRoot("search-by-entry.jpg")
+
+        composeRule.onNodeWithContentDescription(searchScope).performClick()
+        composeRule.onNodeWithText(byEntry).assertIsSelected()
+        composeRule.onNodeWithText(anywhere).performClick()
+        waitForText("Netflix")
+        composeRule.onNodeWithText("Gmail").assertIsDisplayed()
+        composeRule.onNodeWithText("Netflix").assertIsDisplayed()
+        saveRoot("search-anywhere.jpg")
+
+        composeRule.onNodeWithContentDescription(searchScope).performClick()
+        composeRule.onNodeWithText(anywhere).assertIsSelected()
+        composeRule.onNodeWithText(byEntry).performClick()
+        composeRule.onNodeWithText("Netflix").assertDoesNotExist()
+    }
+
+    @Test
     fun captureUnlockAnimation() {
         val viewModel = EntryListViewModel(repository)
         val unlocking = mutableStateOf(false)
@@ -293,11 +376,12 @@ class PlayStoreScreenshotTest {
 
     @Test
     fun captureSecuritySettings() {
+        val viewModel = SettingsViewModel(settings)
         setScreen {
             SettingsScreen(
                 onBack = {},
                 modifier = storePreviewModifier(),
-                viewModel = SettingsViewModel(settings)
+                viewModel = viewModel
             )
         }
 

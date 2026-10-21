@@ -78,6 +78,7 @@ class EntryListViewModelTest {
         save(service = "Gmail", username = "me")
         val viewModel = EntryListViewModel(repository)
 
+        viewModel.onSearchScopeChange(SearchScope.ANYWHERE)
         viewModel.onQueryChange("work@")
         val state = stateOf(viewModel)
 
@@ -85,6 +86,77 @@ class EntryListViewModelTest {
         assertEquals("x", group.key)
         assertEquals("work@mail.com", group.single?.username)
     }
+
+    @Test
+    fun `entry search ignores gmail in other accounts until anywhere is selected`() =
+        runTest(dispatcher) {
+            save(service = "Gmail", username = "personal")
+            save(service = "gmail.com", username = "work")
+            save(service = "Netflix", username = "demo@gmail.com")
+            save(service = "GitHub", username = "developer")
+            val viewModel = EntryListViewModel(repository)
+
+            viewModel.onQueryChange("  GMAIL  ")
+            val initial = stateOf(viewModel)
+            assertEquals(SearchScope.SERVICE_NAME, initial.searchScope)
+            assertEquals(listOf("gmail"), initial.groups.map(ServiceGroup::key))
+            assertEquals(2, initial.groups.single().size)
+
+            viewModel.onSearchScopeChange(SearchScope.ANYWHERE)
+            advanceUntilIdle()
+            val anywhere = viewModel.uiState.value
+            assertEquals("  GMAIL  ", anywhere.query)
+            assertEquals(listOf("gmail", "netflix"), anywhere.groups.map(ServiceGroup::key))
+
+            viewModel.onSearchScopeChange(SearchScope.SERVICE_NAME)
+            advanceUntilIdle()
+            assertEquals(initial, viewModel.uiState.value)
+        }
+
+    @Test
+    fun `anywhere includes hints and categories but never passwords`() = runTest(dispatcher) {
+        save(service = "Mail", hint = "Recovery via GMAIL")
+        save(service = "Forum", category = "Gmail accounts")
+        save(service = "Bank")
+        val viewModel = EntryListViewModel(repository)
+
+        viewModel.onQueryChange("gmail")
+        assertEquals(emptyList<String>(), stateOf(viewModel).entries.map { it.serviceName })
+
+        viewModel.onSearchScopeChange(SearchScope.ANYWHERE)
+        advanceUntilIdle()
+        assertEquals(listOf("Forum", "Mail"), viewModel.uiState.value.entries.map { it.serviceName })
+
+        viewModel.onQueryChange("s3cr3t")
+        advanceUntilIdle()
+        assertEquals(0, viewModel.uiState.value.entries.size)
+    }
+
+    @Test
+    fun `changing scope and clearing search preserve category and favorite filters`() =
+        runTest(dispatcher) {
+            save(service = "Gmail", category = "Work", favorite = true)
+            save(service = "Netflix", username = "demo@gmail.com", category = "Work", favorite = true)
+            save(service = "Forum", username = "demo@gmail.com", category = "Work")
+            save(service = "Shop", username = "demo@gmail.com", category = "Personal", favorite = true)
+            val viewModel = EntryListViewModel(repository)
+            viewModel.onQueryChange("gmail")
+            viewModel.onCategorySelected("Work")
+            viewModel.onFavoritesOnlyToggle()
+            assertEquals(listOf("Gmail"), stateOf(viewModel).entries.map { it.serviceName })
+
+            viewModel.onSearchScopeChange(SearchScope.ANYWHERE)
+            advanceUntilIdle()
+            assertEquals(listOf("Gmail", "Netflix"), viewModel.uiState.value.entries.map { it.serviceName })
+
+            viewModel.onQueryChange("")
+            advanceUntilIdle()
+            val cleared = viewModel.uiState.value
+            assertEquals(SearchScope.ANYWHERE, cleared.searchScope)
+            assertEquals("Work", cleared.selectedCategory)
+            assertEquals(true, cleared.favoritesOnly)
+            assertEquals(listOf("Gmail", "Netflix"), cleared.entries.map { it.serviceName })
+        }
 
     @Test
     fun `filtering by favourites leaves the row standing for the favourite account`() =
@@ -118,6 +190,7 @@ class EntryListViewModelTest {
     private suspend fun save(
         service: String,
         username: String? = null,
+        hint: String? = null,
         category: String? = null,
         favorite: Boolean = false
     ) {
@@ -125,6 +198,7 @@ class EntryListViewModelTest {
             EntryDraft(
                 serviceName = service,
                 username = username,
+                hint = hint,
                 category = category,
                 isFavorite = favorite
             ),

@@ -10,10 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,15 +22,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +42,7 @@ import com.chemecador.passwordmemory.domain.model.ProtectionMode
 import com.chemecador.passwordmemory.ui.common.AppMark
 import com.chemecador.passwordmemory.ui.common.ServiceAvatar
 import com.chemecador.passwordmemory.ui.list.EntryListViewModel
+import com.chemecador.passwordmemory.ui.list.EntrySearchField
 
 /** Shown while the biometric prompt is up, so the autofill window is never a blank rectangle. */
 @Composable
@@ -116,23 +112,11 @@ internal fun EntryPickerScreen(
                 )
             }
             item(key = "search") {
-                TextField(
-                    value = state.query,
-                    onValueChange = viewModel::onQueryChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clip(CircleShape),
-                    singleLine = true,
-                    shape = CircleShape,
-                    placeholder = { Text(stringResource(R.string.list_search)) },
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
+                EntrySearchField(
+                    query = state.query,
+                    scope = state.searchScope,
+                    onQueryChange = viewModel::onQueryChange,
+                    onScopeChange = viewModel::onSearchScopeChange
                 )
             }
             if (entries.isEmpty()) {

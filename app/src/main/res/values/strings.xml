@@ -24,7 +24,11 @@
     <string name="lock_reauth_subtitle">Authenticate again to unlock the encryption key</string>
 
     <!-- List -->
-    <string name="list_search">Search by service or user</string>
+    <string name="list_search_service">Search by entry name</string>
+    <string name="list_search_anywhere">Search anywhere</string>
+    <string name="list_search_scope_service">By entry</string>
+    <string name="list_search_scope_anywhere">Anywhere</string>
+    <string name="list_search_scope">Search scope</string>
     <string name="list_add">New entry</string>
     <string name="list_menu">More options</string>
     <string name="list_clear_search">Clear search</string>
